@@ -17,7 +17,13 @@ const APP_SHELL = [
 ];
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE_VERSION).then((c) => c.addAll(APP_SHELL)));
+  // Pre-cache the app shell, but don't fail install if an optional asset 404s.
+  // (Missing icons/fonts shouldn't brick offline support.)
+  event.waitUntil(
+    caches.open(CACHE_VERSION).then(async (c) => {
+      await Promise.all(APP_SHELL.map((url) => c.add(url).catch(() => null)));
+    })
+  );
   self.skipWaiting();
 });
 

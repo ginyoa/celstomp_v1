@@ -8333,11 +8333,14 @@
       - SHIFT held while clicking => export full timeline (0..totalFrames-1)
       ========================================================= */
 
-    // ✅ Wire once
-    if (exportImgSeqBtn) {
+    function initImgSeqExportWiring() {
+      if (!exportImgSeqBtn) {
+        console.warn("[celstomp] exportImgSeqBtn not found (id exportImgSeqBtn/exportImgSeq).");
+        return;
+      }
+      if (exportImgSeqBtn.dataset.imgSeqWired === "1") return;
+      exportImgSeqBtn.dataset.imgSeqWired = "1";
       exportImgSeqBtn.addEventListener("click", onExportImgSeqClick);
-    } else {
-      console.warn("[celstomp] exportImgSeqBtn not found (id exportImgSeqBtn/exportImgSeq).");
     }
 
     async function onExportImgSeqClick(e) {
@@ -10783,18 +10786,11 @@
       await exportClip(mime, "mp4");
     });
 
-    exportImgSeqBtn?.addEventListener("click", async () => {
-      try {
-        await exportPNGSequenceFull();
-      } catch (e) {
-        console.error(e);
-        alert("IMG SEQ export failed. Open console for details.");
-      }
-    });
+    initImgSeqExportWiring();
 
 
     // IMGSEQ_INIT (unique anchor)
-    wireImgSeqExportButton();
+    initImgSeqExportWiring();
 
 
 
@@ -10864,6 +10860,33 @@
     }
     snapValue?.addEventListener("input", recalcSnap);
 
+    function nudgeCurrentToolSize(delta) {
+      const paintTools = new Set(["brush", "fill-brush", "lasso-fill"]);
+      const eraseTools = new Set(["eraser", "fill-eraser", "lasso-erase"]);
+
+      if (paintTools.has(tool)) {
+        const min = Math.max(1, parseInt(brushSizeInput?.min || "1", 10) || 1);
+        const max = Math.max(min, parseInt(brushSizeInput?.max || "256", 10) || 256);
+        brushSize = clamp((brushSize | 0) + delta, min, max);
+        safeText(brushVal, String(brushSize));
+        if (brushSizeInput) brushSizeInput.value = String(brushSize);
+        try { scheduleBrushPreviewUpdate?.(true); } catch {}
+        return true;
+      }
+
+      if (eraseTools.has(tool)) {
+        const min = Math.max(1, parseInt(eraserSizeInput?.min || "1", 10) || 1);
+        const max = Math.max(min, parseInt(eraserSizeInput?.max || "512", 10) || 512);
+        eraserSize = clamp((eraserSize | 0) + delta, min, max);
+        safeText(eraserVal, String(eraserSize));
+        if (eraserSizeInput) eraserSizeInput.value = String(eraserSize);
+        try { scheduleBrushPreviewUpdate?.(true); } catch {}
+        return true;
+      }
+
+      return false;
+    }
+
     // Keyboard
     window.addEventListener("keydown", (e) => {
       const ctrl = e.ctrlKey || e.metaKey;
@@ -10880,6 +10903,14 @@
 
         if (!typing && !ctrl && !e.altKey) {
           const k = (e.key || "").toLowerCase();
+
+          if (k === "[" || k === "]") {
+            const did = nudgeCurrentToolSize(k === "]" ? 1 : -1);
+            if (did) {
+              e.preventDefault();
+              return;
+            }
+          }
 
           if (k === "e") { // prev frame
             e.preventDefault();
