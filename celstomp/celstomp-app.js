@@ -485,6 +485,7 @@
     const saveProjBtn = document.getElementById("saveProj");
     const loadProjBtn = document.getElementById("loadProj");
     const loadFileInp = document.getElementById("loadFileInp");
+    const saveStateBadgeEl = document.getElementById("saveStateBadge");
 
     const exportImgSeqBtn =
       document.getElementById("exportImgSeqBtn") ||
@@ -8374,14 +8375,55 @@
       return out;
     }
 
-    async function saveProject(){
-      // optional: stop playback to avoid mid-save changes
-      try { if (typeof pausePlayback === "function") pausePlayback(); } catch {}
-      try { if (typeof stopPlayback === "function") stopPlayback(); } catch {}
+    const AUTOSAVE_KEY = "celstomp.project.autosave.v1";
+    const MANUAL_SAVE_META_KEY = "celstomp.project.manualsave.v1";
+    const AUTOSAVE_INTERVAL_MS = 45000;
+    let autosaveDirty = false;
+    let autosaveBusy = false;
+    let autosaveWired = false;
 
+    function setSaveStateBadge(text, tone = "") {
+      if (!saveStateBadgeEl) return;
+      saveStateBadgeEl.textContent = text;
+      saveStateBadgeEl.classList.remove("dirty", "saving", "error");
+      if (tone) saveStateBadgeEl.classList.add(tone);
+    }
+
+    function markProjectDirty() {
+      autosaveDirty = true;
+      setSaveStateBadge("Unsaved", "dirty");
+    }
+
+    function markProjectClean(text = "Saved") {
+      autosaveDirty = false;
+      setSaveStateBadge(text, "");
+    }
+
+    function getLastManualSaveAt() {
+      try {
+        const meta = JSON.parse(localStorage.getItem(MANUAL_SAVE_META_KEY) || "null");
+        const v = Number(meta?.manualSavedAt || 0);
+        return Number.isFinite(v) ? v : 0;
+      } catch {
+        return 0;
+      }
+    }
+
+    function setLastManualSaveAt(ts = Date.now()) {
+      try {
+        localStorage.setItem(MANUAL_SAVE_META_KEY, JSON.stringify({ manualSavedAt: ts }));
+      } catch {}
+    }
+
+    function formatClock(ts) {
+      const d = new Date(ts);
+      return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    }
+
+    async function buildProjectSnapshot() {
       const outLayers = [];
 
-      for (let li = 0; li < LAYERS_COUNT; li++){
+      for (let li = 0; li < LAYERS_COUNT; li++) {
         const lay = layers?.[li];
 
         const opacity = (typeof lay?.opacity === "number") ? clamp(lay.opacity, 0, 1) : 1;
@@ -8391,13 +8433,12 @@
         const suborder = Array.isArray(lay?.suborder) ? lay.suborder.slice() : [];
         const keySet = new Set(suborder);
 
-        if (lay?.sublayers && typeof lay.sublayers.keys === "function"){
+        if (lay?.sublayers && typeof lay.sublayers.keys === "function") {
           for (const k of lay.sublayers.keys()) keySet.add(k);
         }
 
-        // stable order: keep suborder first; then any missing keys sorted
         const keys = Array.from(keySet);
-        keys.sort((a,b) => {
+        keys.sort((a, b) => {
           const ia = suborder.indexOf(a);
           const ib = suborder.indexOf(b);
           if (ia === -1 && ib === -1) return String(a).localeCompare(String(b));
@@ -8408,7 +8449,7 @@
 
         const outSubs = {};
 
-        for (const rawKey of keys){
+        for (const rawKey of keys) {
           const key = (typeof resolveKeyFor === "function") ? resolveKeyFor(li, rawKey) : colorToHex(rawKey);
           const sub = lay?.sublayers?.get?.(key) || lay?.sublayers?.get?.(rawKey);
           if (!sub?.frames) continue;
@@ -8416,7 +8457,7 @@
           const framesOut = {};
           const n = Math.min(totalFrames, sub.frames.length);
 
-          for (let fi = 0; fi < n; fi++){
+          for (let fi = 0; fi < n; fi++) {
             const c = sub.frames[fi];
             if (!c) continue;
 
@@ -8425,13 +8466,16 @@
               (c._hasContent === false) ? false :
               canvasHasAnyAlpha(c);
 
-            if (!has) { c._hasContent = false; continue; }
+            if (!has) {
+              c._hasContent = false;
+              continue;
+            }
 
             const url = await canvasToPngDataURL(c);
             if (url) framesOut[String(fi)] = url;
           }
 
-          if (Object.keys(framesOut).length){
+          if (Object.keys(framesOut).length) {
             outSubs[key] = { frames: framesOut };
           }
         }
@@ -8445,10 +8489,8 @@
         });
       }
 
-      const data = {
+      return {
         version: 2,
-
-        // canvas + timeline
         contentW,
         contentH,
         fps,
@@ -8458,8 +8500,6 @@
         clipStart,
         clipEnd,
         snapFrames,
-
-        // prefs/tools
         brushSize,
         eraserSize,
         currentColor,
@@ -8467,8 +8507,6 @@
         antiAlias,
         closeGapPx,
         autofill,
-
-        // onion/transparency
         onionEnabled,
         transparencyHoldEnabled,
         onionPrevTint,
@@ -8477,17 +8515,122 @@
         playSnapped,
         keepOnionWhilePlaying,
         keepTransWhilePlaying,
-
-        // color memory / selection
         layerColors: Array.isArray(layerColorMem) ? layerColorMem.slice() : [],
         activeLayer,
         activeSubColor: Array.isArray(activeSubColor) ? activeSubColor.slice() : activeSubColor,
-
         oklchDefault,
-
-        // drawings
-        layers: outLayers
+        layers: outLayers,
       };
+    }
+
+    async function runAutosave(reason = "interval") {
+      if (autosaveBusy || !autosaveDirty) return;
+      autosaveBusy = true;
+      setSaveStateBadge("Autosaving...", "saving");
+
+      try {
+        const data = await buildProjectSnapshot();
+        const savedAt = Date.now();
+        const payload = { version: 1, reason, savedAt, data };
+        localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(payload));
+        autosaveDirty = false;
+        setSaveStateBadge(`Autosaved ${formatClock(savedAt)}`);
+      } catch (err) {
+        console.warn("[celstomp] autosave failed:", err);
+        setSaveStateBadge("Autosave failed", "error");
+      } finally {
+        autosaveBusy = false;
+      }
+    }
+
+    function wireAutosaveDirtyTracking() {
+      if (autosaveWired) return;
+      autosaveWired = true;
+
+      const pointerSelectors = [
+        "#drawCanvas",
+        "#fillCurrent",
+        "#fillAll",
+        "#tlDupCel",
+        "#toolSeg label",
+        "#layerSeg .layerRow",
+        "#timelineTable td",
+      ].join(",");
+
+      const valueSelectors = [
+        "#autofillToggle",
+        "#brushSize",
+        "#eraserSize",
+        "#tlSnap",
+        "#tlSeconds",
+        "#tlFps",
+        "#tlOnion",
+        "#tlTransparency",
+        "#loopToggle",
+        "#onionPrevColor",
+        "#onionNextColor",
+        "#onionAlpha",
+      ].join(",");
+
+      document.addEventListener("pointerup", (e) => {
+        const t = e.target;
+        if (t && typeof t.closest === "function" && t.closest(pointerSelectors)) markProjectDirty();
+      }, true);
+
+      document.addEventListener("change", (e) => {
+        const t = e.target;
+        if (t && typeof t.closest === "function" && t.closest(valueSelectors)) markProjectDirty();
+      }, true);
+
+      document.addEventListener("input", (e) => {
+        const t = e.target;
+        if (t && typeof t.closest === "function" && t.closest(valueSelectors)) markProjectDirty();
+      }, true);
+
+      window.addEventListener("beforeunload", (e) => {
+        if (!autosaveDirty) return;
+        e.preventDefault();
+        e.returnValue = "";
+      });
+
+      window.setInterval(() => {
+        void runAutosave("interval");
+      }, AUTOSAVE_INTERVAL_MS);
+
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) void runAutosave("visibilitychange");
+      });
+    }
+
+    function maybePromptAutosaveRecovery() {
+      try {
+        const raw = localStorage.getItem(AUTOSAVE_KEY);
+        if (!raw) return;
+        const payload = JSON.parse(raw);
+        const savedAt = Number(payload?.savedAt || 0);
+        if (!Number.isFinite(savedAt) || !payload?.data) return;
+        if (savedAt <= getLastManualSaveAt()) return;
+
+        const ok = window.confirm(
+          `A newer autosave was found from ${new Date(savedAt).toLocaleString()}.\n\nRestore it now?`
+        );
+        if (!ok) {
+          setSaveStateBadge("Unsaved draft", "dirty");
+          return;
+        }
+
+        const blob = new Blob([JSON.stringify(payload.data)], { type: "application/json" });
+        loadProject(blob);
+      } catch (err) {
+        console.warn("[celstomp] autosave recovery check failed:", err);
+      }
+    }
+
+    async function saveProject(){
+      try { if (typeof pausePlayback === "function") pausePlayback(); } catch {}
+      try { if (typeof stopPlayback === "function") stopPlayback(); } catch {}
+
+      const data = await buildProjectSnapshot();
 
       const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
@@ -8499,6 +8642,10 @@
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
+
+      setLastManualSaveAt(Date.now());
+      markProjectClean("Saved");
+      window.dispatchEvent(new CustomEvent("celstomp:project-saved", { detail: { source: "manual" } }));
     }
 
 
@@ -8797,6 +8944,9 @@
           try { centerView?.(); } catch {}
           try { updateHUD?.(); } catch {}
           try { if (typeof gotoFrame === "function") gotoFrame(currentFrame); } catch {}
+
+          markProjectClean("Loaded");
+          window.dispatchEvent(new CustomEvent("celstomp:project-loaded", { detail: { source: "file" } }));
         })().catch((err) => {
           console.warn("[celstomp] loadProject failed:", err);
           alert("Failed to load project:\n" + (err?.message || String(err)));
@@ -10237,6 +10387,10 @@
         e.currentTarget.value = ""; // reset immediately
         if (f) loadProject(f);
       });
+
+      setSaveStateBadge("Saved");
+      wireAutosaveDirtyTracking();
+      window.setTimeout(maybePromptAutosaveRecovery, 0);
     }
 
     // call once on boot

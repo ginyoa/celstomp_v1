@@ -2555,6 +2555,35 @@ textarea{
   gap: 8px;
 }
 
+.saveStateBadge{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 4px 8px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.88);
+}
+
+.saveStateBadge.dirty{
+  border-color: rgba(255, 196, 102, 0.55);
+  color: #ffdca2;
+}
+
+.saveStateBadge.saving{
+  border-color: rgba(120, 200, 255, 0.55);
+  color: #b9e6ff;
+}
+
+.saveStateBadge.error{
+  border-color: rgba(255, 120, 120, 0.6);
+  color: #ffc4c4;
+}
+
 .islandSideRow{
   display: flex;
   gap: 8px;

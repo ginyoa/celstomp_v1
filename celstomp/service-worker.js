@@ -1,4 +1,4 @@
-const CACHE_VERSION = "celstomp-v1";
+const CACHE_VERSION = "celstomp-v2";
 
 const APP_SHELL = [
   "./",
