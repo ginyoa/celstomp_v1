@@ -137,31 +137,7 @@
 
           <div class="islandPanel islandToolsSlot" id="islandToolsSlot"></div>
 
-          <div class="seg" id="toolSeg">
-            <input checked id="tool-brush" data-tool="brush" name="tool" type="radio" value="brush" />
-            <label for="tool-brush" data-tool="brush" id="toolBrushLabel">Brush</label>
-
-            <input id="tool-eraser" data-tool="eraser" name="tool" type="radio" value="eraser" />
-            <label for="tool-eraser" data-tool="eraser" id="toolEraserLabel">Eraser</label>
-
-            <input id="tool-fillbrush" data-tool="fill-brush" name="tool" type="radio" value="fill-brush" />
-            <label for="tool-fillbrush" data-tool="fill-brush">Fill Brush</label>
-
-            <input id="tool-filleraser" data-tool="fill-eraser" name="tool" type="radio" value="fill-eraser" />
-            <label for="tool-filleraser" data-tool="fill-eraser">Eraser Fill</label>
-
-            <input id="tool-lassoFill" data-tool="lasso-fill" name="tool" type="radio" value="lasso-fill" />
-            <label for="tool-lassoFill" data-tool="lasso-fill">Lasso Fill</label>
-
-            <input id="tool-lassoErase" data-tool="lasso-erase" name="tool" type="radio" value="lasso-erase" />
-            <label for="tool-lassoErase" data-tool="lasso-erase">Lasso Erase</label>
-
-            <input id="tool-rectSelect" data-tool="rect-select" name="tool" type="radio" value="rect-select" />
-            <label for="tool-rectSelect" data-tool="rect-select">Rect Select</label>
-
-            <input id="tool-eyedropper" data-tool="eyedropper" name="tool" type="radio" value="eyedropper" />
-            <label for="tool-eyedropper" data-tool="eyedropper">Eyedropper</label>
-          </div>
+          <div class="seg" id="toolSeg"></div>
 
           <div id="mainBrushSizeGroup" class="mainBrushSizeGroup" aria-label="Brush size controls">
             <label for="brushSizeRange">Brush Size</label>
@@ -176,39 +152,7 @@
       </div>
       <div class="islandPanel" id="islandLayersSlot">
 
-        <div class="seg" id="layerSeg" role="tablist" aria-label="Layers">
-
-          <input checked id="bt-line" name="btype" type="radio" value="line" />
-          <label for="bt-line">
-            <span class="layerName">LINE</span>
-            <span class="layerSwatches" id="swatches-line"></span>
-          </label>
-
-          <input id="bt-color" name="btype" type="radio" value="shade" />
-          <label for="bt-color">
-            <span class="layerName">SHADE</span>
-            <span class="layerSwatches" id="swatches-shade"></span>
-          </label>
-
-          <input id="bt-sketch" name="btype" type="radio" value="color" />
-          <label for="bt-sketch">
-            <span class="layerName">COLOR</span>
-            <span class="layerSwatches" id="swatches-color"></span>
-          </label>
-
-          <input id="bt-fill" name="btype" type="radio" value="fill" />
-          <label for="bt-fill">
-            <span class="layerName">FILL</span>
-            <span class="layerSwatches" id="swatches-fill"></span>
-          </label>
-
-          <input id="bt-paper" name="btype" type="radio" value="paper" />
-          <label for="bt-paper">
-            <span class="layerName">PAPER</span>
-            <span class="layerSwatches" id="swatches-paper"></span>
-          </label>
-
-        </div>
+        <div class="seg" id="layerSeg" role="tablist" aria-label="Layers"></div>
       </div>
 
 
@@ -362,6 +306,7 @@
 
 
 
+  <script src="./js/ui-components.js"></script>
   <script src="./celstomp-imgseq.js"></script>
   <script src="./celstomp-autosave.js"></script>
   <script src="./celstomp-app.js"></script>
