@@ -4,6 +4,7 @@ const APP_SHELL = [
   "./",
   "./index.html",
   "./celstomp-styles.css",
+  "./celstomp-imgseq.js",
   "./celstomp-app.js",
   "./manifest.webmanifest",
 
