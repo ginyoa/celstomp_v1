@@ -40,12 +40,11 @@
     }
 
     // --- LAYERS ---
-    // Note: maintaining legacy ID/Value mappings from original HTML
     const layers = [
         { id: 'bt-line', val: 'line', label: 'LINE', swatchId: 'swatches-line', checked: true },
         { id: 'bt-color', val: 'shade', label: 'SHADE', swatchId: 'swatches-shade' },
         { id: 'bt-sketch', val: 'color', label: 'COLOR', swatchId: 'swatches-color' },
-        { id: 'bt-fill', val: 'fill', label: 'FILL', swatchId: 'swatches-fill' }, // id 'bt-fill' matches value 'fill'
+        { id: 'bt-fill', val: 'fill', label: 'FILL', swatchId: 'swatches-fill' },
         { id: 'bt-paper', val: 'paper', label: 'PAPER', swatchId: 'swatches-paper' }
     ];
 
