@@ -1,10 +1,11 @@
-const CACHE_VERSION = "celstomp-v4";
+const CACHE_VERSION = "celstomp-v5";
 
 const APP_SHELL = [
   "./",
   "./index.html",
   "./celstomp-styles.css",
   "./celstomp-imgseq.js",
+  "./celstomp-autosave.js",
   "./celstomp-app.js",
   "./manifest.webmanifest",
 

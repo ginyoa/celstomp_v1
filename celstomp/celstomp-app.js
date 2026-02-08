@@ -8376,77 +8376,6 @@
       return out;
     }
 
-    const AUTOSAVE_KEY = "celstomp.project.autosave.v1";
-    const MANUAL_SAVE_META_KEY = "celstomp.project.manualsave.v1";
-    const AUTOSAVE_INTERVAL_MS = 45000;
-    let autosaveDirty = false;
-    let autosaveBusy = false;
-    let autosaveWired = false;
-
-    function setSaveStateBadge(text, tone = "") {
-      if (!saveStateBadgeEl) return;
-      saveStateBadgeEl.textContent = text;
-      saveStateBadgeEl.classList.remove("dirty", "saving", "error");
-      if (tone) saveStateBadgeEl.classList.add(tone);
-    }
-
-    function markProjectDirty() {
-      autosaveDirty = true;
-      setSaveStateBadge("Unsaved", "dirty");
-    }
-
-    function markProjectClean(text = "Saved") {
-      autosaveDirty = false;
-      setSaveStateBadge(text, "");
-    }
-
-    function getLastManualSaveAt() {
-      try {
-        const meta = JSON.parse(localStorage.getItem(MANUAL_SAVE_META_KEY) || "null");
-        const v = Number(meta?.manualSavedAt || 0);
-        return Number.isFinite(v) ? v : 0;
-      } catch {
-        return 0;
-      }
-    }
-
-    function setLastManualSaveAt(ts = Date.now()) {
-      try {
-        localStorage.setItem(MANUAL_SAVE_META_KEY, JSON.stringify({ manualSavedAt: ts }));
-      } catch {}
-    }
-
-    function getAutosavePayload() {
-      try {
-        const raw = localStorage.getItem(AUTOSAVE_KEY);
-        if (!raw) return null;
-        const payload = JSON.parse(raw);
-        const savedAt = Number(payload?.savedAt || 0);
-        if (!Number.isFinite(savedAt) || !payload?.data) return null;
-        return payload;
-      } catch {
-        return null;
-      }
-    }
-
-    function hasRecoverableAutosave() {
-      const payload = getAutosavePayload();
-      if (!payload) return false;
-      return Number(payload.savedAt) > getLastManualSaveAt();
-    }
-
-    function updateRestoreAutosaveButton() {
-      if (!restoreAutosaveBtn) return;
-      const enabled = hasRecoverableAutosave();
-      restoreAutosaveBtn.disabled = !enabled;
-      restoreAutosaveBtn.textContent = enabled ? "Restore Draft" : "Restore Draft";
-    }
-
-    function formatClock(ts) {
-      const d = new Date(ts);
-      return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    }
-
     async function buildProjectSnapshot() {
       const outLayers = [];
 
@@ -8550,32 +8479,13 @@
       };
     }
 
-    async function runAutosave(reason = "interval") {
-      if (autosaveBusy || !autosaveDirty) return;
-      autosaveBusy = true;
-      setSaveStateBadge("Autosaving...", "saving");
-
-      try {
-        const data = await buildProjectSnapshot();
-        const savedAt = Date.now();
-        const payload = { version: 1, reason, savedAt, data };
-        localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(payload));
-        autosaveDirty = false;
-        setSaveStateBadge(`Autosaved ${formatClock(savedAt)}`);
-        updateRestoreAutosaveButton();
-      } catch (err) {
-        console.warn("[celstomp] autosave failed:", err);
-        setSaveStateBadge("Autosave failed", "error");
-      } finally {
-        autosaveBusy = false;
-      }
-    }
-
-    function wireAutosaveDirtyTracking() {
-      if (autosaveWired) return;
-      autosaveWired = true;
-
-      const pointerSelectors = [
+    const autosaveController = window.CelstompAutosave?.createController?.({
+      autosaveKey: "celstomp.project.autosave.v1",
+      manualSaveMetaKey: "celstomp.project.manualsave.v1",
+      intervalMs: 45000,
+      badgeEl: saveStateBadgeEl,
+      buildSnapshot: buildProjectSnapshot,
+      pointerSelectors: [
         "#drawCanvas",
         "#fillCurrent",
         "#fillAll",
@@ -8583,9 +8493,8 @@
         "#toolSeg label",
         "#layerSeg .layerRow",
         "#timelineTable td",
-      ].join(",");
-
-      const valueSelectors = [
+      ],
+      valueSelectors: [
         "#autofillToggle",
         "#brushSize",
         "#eraserSize",
@@ -8598,59 +8507,58 @@
         "#onionPrevColor",
         "#onionNextColor",
         "#onionAlpha",
-      ].join(",");
+      ],
+      onRestorePayload: (payload, source) => {
+        const blob = new Blob([JSON.stringify(payload.data)], { type: "application/json" });
+        loadProject(blob, { source });
+      },
+    }) || null;
 
-      document.addEventListener("pointerup", (e) => {
-        const t = e.target;
-        if (t && typeof t.closest === "function" && t.closest(pointerSelectors)) markProjectDirty();
-      }, true);
+    function setSaveStateBadge(text, tone = "") {
+      if (autosaveController) {
+        autosaveController.setBadge(text, tone);
+        return;
+      }
+      if (!saveStateBadgeEl) return;
+      saveStateBadgeEl.textContent = text;
+      saveStateBadgeEl.classList.remove("dirty", "saving", "error");
+      if (tone) saveStateBadgeEl.classList.add(tone);
+    }
 
-      document.addEventListener("change", (e) => {
-        const t = e.target;
-        if (t && typeof t.closest === "function" && t.closest(valueSelectors)) markProjectDirty();
-      }, true);
+    function markProjectDirty() {
+      if (autosaveController) return autosaveController.markDirty();
+      setSaveStateBadge("Unsaved", "dirty");
+    }
 
-      document.addEventListener("input", (e) => {
-        const t = e.target;
-        if (t && typeof t.closest === "function" && t.closest(valueSelectors)) markProjectDirty();
-      }, true);
+    function markProjectClean(text = "Saved") {
+      if (autosaveController) return autosaveController.markClean(text);
+      setSaveStateBadge(text, "");
+    }
 
-      window.addEventListener("beforeunload", (e) => {
-        if (!autosaveDirty) return;
-        e.preventDefault();
-        e.returnValue = "";
-      });
+    function setLastManualSaveAt(ts = Date.now()) {
+      if (autosaveController) return autosaveController.setManualSaveAt(ts);
+      try {
+        localStorage.setItem("celstomp.project.manualsave.v1", JSON.stringify({ manualSavedAt: ts }));
+      } catch {}
+    }
 
-      window.setInterval(() => {
-        void runAutosave("interval");
-      }, AUTOSAVE_INTERVAL_MS);
+    function getAutosavePayload() {
+      if (autosaveController) return autosaveController.getPayload();
+      return null;
+    }
 
-      document.addEventListener("visibilitychange", () => {
-        if (document.hidden) void runAutosave("visibilitychange");
-      });
+    function updateRestoreAutosaveButton() {
+      if (autosaveController) return autosaveController.updateRestoreButton(restoreAutosaveBtn);
+      if (restoreAutosaveBtn) restoreAutosaveBtn.disabled = true;
+    }
+
+    function wireAutosaveDirtyTracking() {
+      if (autosaveController) return autosaveController.wireDirtyTracking();
     }
 
     function maybePromptAutosaveRecovery() {
-      try {
-        const payload = getAutosavePayload();
-        if (!payload) return;
-        const savedAt = Number(payload.savedAt || 0);
-        if (savedAt <= getLastManualSaveAt()) return;
-
-        const ok = window.confirm(
-          `A newer autosave was found from ${new Date(savedAt).toLocaleString()}.\n\nRestore it now?`
-        );
-        if (!ok) {
-          setSaveStateBadge("Unsaved draft", "dirty");
-          updateRestoreAutosaveButton();
-          return;
-        }
-
-        const blob = new Blob([JSON.stringify(payload.data)], { type: "application/json" });
-        loadProject(blob, { source: "autosave-prompt" });
-      } catch (err) {
-        console.warn("[celstomp] autosave recovery check failed:", err);
-      }
+      if (!autosaveController) return;
+      autosaveController.promptRecovery({ source: "autosave-prompt" });
     }
 
     async function saveProject(){
@@ -10419,13 +10327,16 @@
       });
 
       restoreAutosaveBtn?.addEventListener("click", () => {
-        const payload = getAutosavePayload();
-        if (!payload) {
+        const restored = autosaveController?.restoreLatest("autosave-button");
+        if (!restored) {
           updateRestoreAutosaveButton();
-          return;
+          if (!autosaveController) {
+            const payload = getAutosavePayload();
+            if (!payload) return;
+            const blob = new Blob([JSON.stringify(payload.data)], { type: "application/json" });
+            loadProject(blob, { source: "autosave-button" });
+          }
         }
-        const blob = new Blob([JSON.stringify(payload.data)], { type: "application/json" });
-        loadProject(blob, { source: "autosave-button" });
       });
 
       loadFileInp.addEventListener("change", (e) => {
