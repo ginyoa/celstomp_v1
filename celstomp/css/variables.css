@@ -3,8 +3,7 @@
   src:
     local("Cascadia Code"),
     local("Cascadia Mono"),
-    local("Cascadia"),
-    url("../fonts/Cascadia.ttf") format("truetype");
+    local("Cascadia");
   font-display: swap;
 }
 

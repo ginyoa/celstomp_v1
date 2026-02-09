@@ -141,14 +141,14 @@
   mask-size: contain;
 }
 
-#islandToolsSlot #toolSeg > label[data-tool="brush"]      { --tool-icon: url("../icons/tool-brush.svg"); }
-#islandToolsSlot #toolSeg > label[data-tool="eraser"]     { --tool-icon: url("../icons/tool-eraser.svg"); }
-#islandToolsSlot #toolSeg > label[data-tool="fill-eraser"]{ --tool-icon: url("../icons/tool-fill-eraser.svg"); }
-#islandToolsSlot #toolSeg > label[data-tool="fill-brush"] { --tool-icon: url("../icons/tool-fill-brush.svg"); }
-#islandToolsSlot #toolSeg > label[data-tool="lasso-fill"] { --tool-icon: url("../icons/tool-lasso-fill.svg"); }
-#islandToolsSlot #toolSeg > label[data-tool="lasso-erase"]{ --tool-icon: url("../icons/tool-lasso-erase.svg"); }
-#islandToolsSlot #toolSeg > label[data-tool="rect-select"]{ --tool-icon: url("../icons/tool-rect-select.svg"); }
-#islandToolsSlot #toolSeg > label[data-tool="eyedropper"]{ --tool-icon: url("../icons/tool-eyedropper.svg"); }
+#islandToolsSlot #toolSeg > label[data-tool="brush"]      { --tool-icon: url("/icons/tool-brush.svg"); }
+#islandToolsSlot #toolSeg > label[data-tool="eraser"]     { --tool-icon: url("/icons/tool-eraser.svg"); }
+#islandToolsSlot #toolSeg > label[data-tool="fill-eraser"]{ --tool-icon: url("/icons/tool-fill-eraser.svg"); }
+#islandToolsSlot #toolSeg > label[data-tool="fill-brush"] { --tool-icon: url("/icons/tool-fill-brush.svg"); }
+#islandToolsSlot #toolSeg > label[data-tool="lasso-fill"] { --tool-icon: url("/icons/tool-lasso-fill.svg"); }
+#islandToolsSlot #toolSeg > label[data-tool="lasso-erase"]{ --tool-icon: url("/icons/tool-lasso-erase.svg"); }
+#islandToolsSlot #toolSeg > label[data-tool="rect-select"]{ --tool-icon: url("/icons/tool-rect-select.svg"); }
+#islandToolsSlot #toolSeg > label[data-tool="eyedropper"]{ --tool-icon: url("/icons/tool-eyedropper.svg"); }
 
 #islandToolsSlot #toolSeg > input:checked + label{
   outline: 2px solid rgba(120, 200, 255, 0.90);
