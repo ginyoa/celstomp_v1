@@ -31,12 +31,12 @@ header.top .topSlot.right{
   width: 22px;
   height: 22px;
   border-radius: 6px;
-  background: url("../icons/ginyospace.ico") center / contain no-repeat;
+  background: url("/ginyospace.ico") center / contain no-repeat;
   box-shadow: 0 0 0 2px #000 inset;
 }
 
 .brandIconR{
-  background-image: url("../icons/favicon.ico");
+  background-image: url("/favicon.ico");
 }
 
 

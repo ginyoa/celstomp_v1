@@ -883,7 +883,9 @@
         let currentFrame = 0;
         const _normC = document.createElement("canvas");
         _normC.width = _normC.height = 1;
-        const _normCtx = _normC.getContext("2d");
+        const _normCtx = _normC.getContext("2d", {
+            willReadFrequently: true
+        });
         function normalizeToHex(colorStr) {
             try {
                 _normCtx.clearRect(0, 0, 1, 1);
@@ -3451,7 +3453,9 @@
         }
         function setColorSwatch() {
             if (!brushSwatch || !brushHexEl) return;
-            const tmp = document.createElement("canvas").getContext("2d");
+            const tmp = document.createElement("canvas").getContext("2d", {
+                willReadFrequently: true
+            });
             tmp.fillStyle = currentColor;
             tmp.fillRect(0, 0, 1, 1);
             const [r, g, b] = tmp.getImageData(0, 0, 1, 1).data;
@@ -3944,7 +3948,9 @@
             });
             const img = fctx.getImageData(0, 0, w, h);
             const d = img.data;
-            const tmp = document.createElement("canvas").getContext("2d");
+            const tmp = document.createElement("canvas").getContext("2d", {
+                willReadFrequently: true
+            });
             tmp.fillStyle = key;
             tmp.fillRect(0, 0, 1, 1);
             const c = tmp.getImageData(0, 0, 1, 1).data;
@@ -4267,7 +4273,9 @@
             const fctx = fillCanvas.getContext("2d");
             const out = fctx.createImageData(w, h);
             const od = out.data;
-            const tmp = document.createElement("canvas").getContext("2d");
+            const tmp = document.createElement("canvas").getContext("2d", {
+                willReadFrequently: true
+            });
             tmp.fillStyle = fillWhite;
             tmp.fillRect(0, 0, 1, 1);
             const c = tmp.getImageData(0, 0, 1, 1).data;
