@@ -314,7 +314,14 @@
         const hsvWheelCanvas = $("hsvWheelCanvas");
         const hsvWheelPreview = $("hsvWheelPreview");
         const toolSeg = document.getElementById("toolSeg");
-        const brushSeg = document.getElementById("brushSeg");
+        const brushShapeSeg = document.getElementById("brushShapeSeg");
+        const toolSettingsSection = document.getElementById("toolSettingsSection");
+        const toolSettingsTitle = document.getElementById("toolSettingsTitle");
+        const toolFoldBrushesBtn = document.getElementById("toolFoldBrushesBtn");
+        const toolFoldBrushesBody = document.getElementById("toolFoldBrushesBody");
+        const toolFoldSettingsBtn = document.getElementById("toolFoldSettingsBtn");
+        const toolFoldSettingsBody = document.getElementById("toolFoldSettingsBody");
+        const brushShapeTooltip = document.getElementById("brushShapeTooltip");
         const eraserOptionsPopup = document.getElementById("eraserOptionsPopup");
         function openPopupAt(popup, x, y) {
             if (!popup) return;
@@ -458,6 +465,8 @@
         const brushSizeInput = $("brushSize") || $("brushSizeRange");
         const brushSizeNumInput = $("brushSizeNum");
         const eraserSizeInput = $("eraserSize");
+        const toolOpacityRange = $("toolOpacityRange");
+        const toolAngleRange = $("toolAngleRange");
         const brushVal = $("brushVal");
         const eraserVal = $("eraserVal");
         const brushSwatch = $("brushSwatch");
@@ -669,6 +678,27 @@
         let brushSize = 3;
         let brushType = "circle";
         let eraserSize = 100;
+        const DEFAULT_TOOL_BRUSH_SETTINGS = {
+            shape: "circle",
+            size: 3,
+            opacity: 1,
+            angle: 0
+        };
+        const DEFAULT_TOOL_ERASER_SETTINGS = {
+            shape: "circle",
+            size: 100,
+            opacity: 1,
+            angle: 0
+        };
+        let brushSettings = {
+            ...DEFAULT_TOOL_BRUSH_SETTINGS
+        };
+        let eraserSettings = {
+            ...DEFAULT_TOOL_ERASER_SETTINGS
+        };
+        brushType = brushSettings.shape;
+        brushSize = brushSettings.size;
+        eraserSize = eraserSettings.size;
         let currentColor = "#000000";
         let usePressureSize = true;
         let usePressureOpacity = false;
@@ -1348,21 +1378,30 @@
         let _brushPrevLastXY = null;
         function brushShapeForType(kind) {
             const t = String(kind || "circle");
-            if (t === "square" || t === "oval" || t === "oval-vertical" || t === "circle") return t;
+            if (t === "circle" || t === "square" || t === "diamond" || t === "oval-h" || t === "oval-v" || t === "rect-h" || t === "rect-v" || t === "triangle") return t;
             return "circle";
         }
         function brushShapeDimensions(shape, size) {
             const s = Math.max(1, Math.round(size || 1));
-            const slim = Math.max(1, Math.round(s / 3));
             switch (brushShapeForType(shape)) {
-                case "oval":
+                case "oval-h":
                     return {
                         w: s,
-                        h: slim
+                        h: Math.max(1, Math.round(s * 0.55))
                     };
-                case "oval-vertical":
+                case "oval-v":
                     return {
-                        w: slim,
+                        w: Math.max(1, Math.round(s * 0.55)),
+                        h: s
+                    };
+                case "rect-h":
+                    return {
+                        w: s,
+                        h: Math.max(1, Math.round(s * 0.4))
+                    };
+                case "rect-v":
+                    return {
+                        w: Math.max(1, Math.round(s * 0.4)),
                         h: s
                     };
                 default:
@@ -1371,6 +1410,105 @@
                         h: s
                     };
             }
+        }
+        function clamp01(v) {
+            return Math.max(0, Math.min(1, Number(v) || 0));
+        }
+        function mergeBrushSettings(base, patch) {
+            const next = {
+                ...base,
+                ...patch
+            };
+            next.shape = brushShapeForType(next.shape);
+            next.size = Math.max(1, Math.round(next.size || 1));
+            next.opacity = clamp01(next.opacity);
+            next.angle = Math.max(-90, Math.min(90, Math.round(Number(next.angle) || 0)));
+            return next;
+        }
+        function setActiveToolSettings(nextSettings) {
+            if (tool === "eraser") {
+                eraserSettings = mergeBrushSettings(eraserSettings, nextSettings);
+                eraserSize = eraserSettings.size;
+            } else {
+                brushSettings = mergeBrushSettings(brushSettings, nextSettings);
+                brushType = brushSettings.shape;
+                brushSize = brushSettings.size;
+            }
+        }
+        function refreshToolSettingsUI() {
+            const isBrush = tool === "brush";
+            const isEraser = tool === "eraser";
+            if (toolSettingsSection) toolSettingsSection.hidden = !(isBrush || isEraser);
+            if (!isBrush && !isEraser) return;
+            const s = isEraser ? eraserSettings : brushSettings;
+            if (toolSettingsTitle) toolSettingsTitle.textContent = isEraser ? "Eraser" : "Brushes";
+            safeSetValue(brushSizeInput, s.size);
+            safeSetValue(brushSizeNumInput, s.size);
+            safeSetValue(toolOpacityRange, Math.round(s.opacity * 100));
+            safeSetValue(toolAngleRange, s.angle);
+            const activeShape = document.querySelector('input[name="brushShape"][value="' + s.shape + '"]');
+            if (activeShape) activeShape.checked = true;
+        }
+        function setFoldExpanded(btn, body, open) {
+            if (!btn || !body) return;
+            btn.setAttribute("aria-expanded", open ? "true" : "false");
+            body.hidden = !open;
+        }
+        function wireToolSettingsFolds() {
+            if (toolFoldBrushesBtn && toolFoldBrushesBody && !toolFoldBrushesBtn.dataset.wired) {
+                toolFoldBrushesBtn.dataset.wired = "1";
+                setFoldExpanded(toolFoldBrushesBtn, toolFoldBrushesBody, true);
+                toolFoldBrushesBtn.addEventListener("click", () => {
+                    const open = toolFoldBrushesBtn.getAttribute("aria-expanded") === "true";
+                    setFoldExpanded(toolFoldBrushesBtn, toolFoldBrushesBody, !open);
+                });
+            }
+            if (toolFoldSettingsBtn && toolFoldSettingsBody && !toolFoldSettingsBtn.dataset.wired) {
+                toolFoldSettingsBtn.dataset.wired = "1";
+                setFoldExpanded(toolFoldSettingsBtn, toolFoldSettingsBody, true);
+                toolFoldSettingsBtn.addEventListener("click", () => {
+                    const open = toolFoldSettingsBtn.getAttribute("aria-expanded") === "true";
+                    setFoldExpanded(toolFoldSettingsBtn, toolFoldSettingsBody, !open);
+                });
+            }
+        }
+        function wireBrushShapeTooltips() {
+            if (!brushShapeSeg || !brushShapeTooltip || brushShapeSeg.dataset.tooltipWired === "1") return;
+            brushShapeSeg.dataset.tooltipWired = "1";
+            let pressTimer = 0;
+            const hideTip = () => {
+                brushShapeTooltip.hidden = true;
+                brushShapeTooltip.textContent = "";
+            };
+            const showTip = (label, x, y) => {
+                const text = label?.title || label?.getAttribute("aria-label") || "";
+                if (!text) return;
+                brushShapeTooltip.textContent = text;
+                brushShapeTooltip.style.left = `${Math.round(x + 10)}px`;
+                brushShapeTooltip.style.top = `${Math.round(y + 10)}px`;
+                brushShapeTooltip.hidden = false;
+            };
+            brushShapeSeg.addEventListener("pointerdown", e => {
+                const label = e.target?.closest?.("label[data-brush-shape]");
+                if (!label) return;
+                clearTimeout(pressTimer);
+                pressTimer = window.setTimeout(() => showTip(label, e.clientX, e.clientY), 500);
+            });
+            ["pointerup", "pointercancel", "pointerleave", "pointermove"].forEach(evt => {
+                brushShapeSeg.addEventListener(evt, () => {
+                    clearTimeout(pressTimer);
+                    if (evt !== "pointermove") hideTip();
+                }, {
+                    passive: true
+                });
+            });
+            brushShapeSeg.addEventListener("mouseover", e => {
+                if (!window.matchMedia("(hover: hover)").matches) return;
+                const label = e.target?.closest?.("label[data-brush-shape]");
+                if (!label) return;
+                showTip(label, e.clientX, e.clientY);
+            });
+            brushShapeSeg.addEventListener("mouseout", hideTip);
         }
         function initBrushCursorPreview(inputCanvasEl) {
             _brushPrevCanvas = inputCanvasEl;
@@ -1432,7 +1570,7 @@
             document.addEventListener("change", e => {
                 const t = e.target;
                 if (!(t instanceof HTMLInputElement)) return;
-                if (t.name === "brush" || t.name === "tool") scheduleBrushPreviewUpdate(true);
+                if (t.name === "brush" || t.name === "brushShape" || t.name === "tool") scheduleBrushPreviewUpdate(true);
             }, {
                 passive: true
             });
@@ -1450,8 +1588,8 @@
             return String(typeof tool !== "undefined" && tool ? tool : "");
         }
         function getBrushSizeForPreview(toolKind) {
-            if (toolKind === "eraser") return Number(eraserSize ?? 8);
-            return Number(brushSize ?? 6);
+            if (toolKind === "eraser") return Number(eraserSettings?.size ?? eraserSize ?? 8);
+            return Number(brushSettings?.size ?? brushSize ?? 6);
         }
         function updateBrushPreview() {
             if (!_brushPrevEl || !_brushPrevCanvas) return;
@@ -1467,8 +1605,10 @@
             const cx = pt.x;
             const cy = pt.y;
             const z = typeof zoom === "number" && isFinite(zoom) ? zoom : 1;
-            const shape = brushShapeForType(typeof brushType !== "undefined" ? brushType : "circle");
-            const sizeContentPx = Math.max(1, getBrushSizeForPreview(isEraser ? "eraser" : "brush"));
+            const settings = isEraser ? eraserSettings : brushSettings;
+            const renderSettings = normalizedBrushRenderSettings(settings);
+            const shape = brushShapeForType(renderSettings.shape || "circle");
+            const sizeContentPx = Math.max(1, renderSettings.size || getBrushSizeForPreview(isEraser ? "eraser" : "brush"));
             const dim = brushShapeDimensions(shape, sizeContentPx);
             const widthCssPx = Math.max(2, dim.w * z);
             const heightCssPx = Math.max(2, dim.h * z);
@@ -1481,7 +1621,17 @@
             _brushPrevEl.style.top = `${cy}px`;
             _brushPrevEl.style.width = `${widthCssPx}px`;
             _brushPrevEl.style.height = `${heightCssPx}px`;
-            _brushPrevEl.style.borderRadius = shape === "square" ? "0" : "999px";
+            _brushPrevEl.style.borderRadius = "0";
+            _brushPrevEl.style.clipPath = "none";
+            let shapeRotation = 0;
+            if (shape === "circle" || shape === "oval-h" || shape === "oval-v") {
+                _brushPrevEl.style.borderRadius = "999px";
+            } else if (shape === "diamond") {
+                shapeRotation = 45;
+            } else if (shape === "triangle") {
+                _brushPrevEl.style.clipPath = "polygon(50% 0%, 100% 100%, 0% 100%)";
+            }
+            _brushPrevEl.style.transform = `translate(-50%, -50%) rotate(${shapeRotation + (renderSettings.angle || 0)}deg)`;
             _brushPrevEl.style.display = "block";
         }
         function framesToSF(f) {
@@ -1564,6 +1714,7 @@
             safeText(toolName, tool.replace("-", " ").replace(/\b\w/g, m => m.toUpperCase()));
             safeText(fpsLabel, String(fps));
             safeText(secLabel, String(seconds));
+            refreshToolSettingsUI();
         }
         const _colorCtx = (() => {
             const c = document.createElement("canvas");
@@ -4444,26 +4595,29 @@
 
         const _brushMaskCache = new Map();
         const _brushStampCache = new Map();
-        function brushMaskCacheKey(shape, size, aaOn) {
-            return `${shape}|${size}|${aaOn ? 1 : 0}`;
+        function brushMaskCacheKey(settings) {
+            return `${settings.shape}|${settings.size}|${settings.angle}`;
         }
-        function brushStampCacheKey(shape, size, color, aaOn) {
-            return `${shape}|${size}|${aaOn ? 1 : 0}|${color}`;
+        function brushStampCacheKey(settings, color) {
+            return `${brushMaskCacheKey(settings)}|${color}`;
         }
-        function getBrushMask(shapeRaw, sizeRaw, aaOn) {
-            const shape = brushShapeForType(shapeRaw);
-            const size = Math.max(1, Math.round(sizeRaw || 1));
-            const key = brushMaskCacheKey(shape, size, aaOn);
+        function normalizedBrushRenderSettings(source) {
+            return mergeBrushSettings(DEFAULT_TOOL_BRUSH_SETTINGS, source || {});
+        }
+        function getBrushMask(sourceSettings) {
+            const settings = normalizedBrushRenderSettings(sourceSettings);
+            const key = brushMaskCacheKey(settings);
             const cached = _brushMaskCache.get(key);
             if (cached) return cached;
 
-            const dim = brushShapeDimensions(shape, size);
+            const dim = brushShapeDimensions(settings.shape, settings.size);
             const w = dim.w;
             const h = dim.h;
             const cx = w / 2;
             const cy = h / 2;
             const rx = Math.max(0.5, w / 2);
             const ry = Math.max(0.5, h / 2);
+            const shape = settings.shape;
 
             const canvas = document.createElement("canvas");
             canvas.width = w;
@@ -4472,59 +4626,75 @@
                 willReadFrequently: true
             });
 
-            if (aaOn) {
-                ctx.clearRect(0, 0, w, h);
-                ctx.fillStyle = "#fff";
-                if (shape === "square") {
-                    ctx.fillRect(0, 0, w, h);
-                } else {
-                    ctx.beginPath();
-                    ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-            } else {
-                const img = ctx.createImageData(w, h);
-                const d = img.data;
-                for (let y = 0; y < h; y++) {
-                    for (let x = 0; x < w; x++) {
-                        let inside = false;
-                        if (shape === "square") {
-                            inside = true;
-                        } else {
-                            const nx = ((x + .5) - cx) / rx;
-                            const ny = ((y + .5) - cy) / ry;
-                            inside = nx * nx + ny * ny <= 1;
-                        }
-                        if (!inside) continue;
-                        const i = (y * w + x) * 4;
-                        d[i + 0] = 255;
-                        d[i + 1] = 255;
-                        d[i + 2] = 255;
-                        d[i + 3] = 255;
+            const img = ctx.createImageData(w, h);
+            const d = img.data;
+            for (let y = 0; y < h; y++) {
+                for (let x = 0; x < w; x++) {
+                    const px = x + 0.5;
+                    const py = y + 0.5;
+                    let inside = false;
+                    if (shape === "circle" || shape === "oval-h" || shape === "oval-v") {
+                        const nx = (px - cx) / rx;
+                        const ny = (py - cy) / ry;
+                        inside = nx * nx + ny * ny <= 1;
+                    } else if (shape === "square" || shape === "rect-h" || shape === "rect-v") {
+                        inside = true;
+                    } else if (shape === "diamond") {
+                        const nx = Math.abs((px - cx) / rx);
+                        const ny = Math.abs((py - cy) / ry);
+                        inside = nx + ny <= 1;
+                    } else if (shape === "triangle") {
+                        const tx = (px - cx) / rx;
+                        const ty = (py - cy) / ry;
+                        inside = ty <= 1 && ty >= -1 && Math.abs(tx) <= (1 - (ty + 1) / 2);
                     }
+                    if (!inside) continue;
+                    const i = (y * w + x) * 4;
+                    d[i + 0] = 255;
+                    d[i + 1] = 255;
+                    d[i + 2] = 255;
+                    d[i + 3] = 255;
                 }
-                ctx.putImageData(img, 0, 0);
+            }
+            ctx.putImageData(img, 0, 0);
+
+            const angle = Number(settings.angle || 0);
+            let outCanvas = canvas;
+            if (angle !== 0) {
+                const rad = angle * Math.PI / 180;
+                const cos = Math.abs(Math.cos(rad));
+                const sin = Math.abs(Math.sin(rad));
+                const rw = Math.max(1, Math.ceil(w * cos + h * sin));
+                const rh = Math.max(1, Math.ceil(w * sin + h * cos));
+                const rc = document.createElement("canvas");
+                rc.width = rw;
+                rc.height = rh;
+                const rctx = rc.getContext("2d");
+                rctx.imageSmoothingEnabled = false;
+                rctx.translate(rw / 2, rh / 2);
+                rctx.rotate(rad);
+                rctx.drawImage(canvas, -w / 2, -h / 2);
+                outCanvas = rc;
             }
 
             const out = {
-                canvas: canvas,
-                w: w,
-                h: h,
-                ox: Math.floor(w / 2),
-                oy: Math.floor(h / 2)
+                canvas: outCanvas,
+                w: outCanvas.width,
+                h: outCanvas.height,
+                ox: Math.floor(outCanvas.width / 2),
+                oy: Math.floor(outCanvas.height / 2)
             };
             _brushMaskCache.set(key, out);
             return out;
         }
-        function getBrushStamp(shapeRaw, sizeRaw, colorRaw, aaOn) {
-            const shape = brushShapeForType(shapeRaw);
-            const size = Math.max(1, Math.round(sizeRaw || 1));
+        function getBrushStamp(sourceSettings, colorRaw) {
+            const settings = normalizedBrushRenderSettings(sourceSettings);
             const color = colorToHex(colorRaw || "#000000");
-            const key = brushStampCacheKey(shape, size, color, aaOn);
+            const key = brushStampCacheKey(settings, color);
             const cached = _brushStampCache.get(key);
             if (cached) return cached;
 
-            const mask = getBrushMask(shape, size, aaOn);
+            const mask = getBrushMask(settings);
             const canvas = document.createElement("canvas");
             canvas.width = mask.w;
             canvas.height = mask.h;
@@ -4545,18 +4715,17 @@
             _brushStampCache.set(key, out);
             return out;
         }
-        function stampLine(ctx, x0, y0, x1, y1, size, color, alpha = 1) { //this draws the pencil
-            const s = Math.max(1, Math.round(size));
-            const aaOn = getBrushAntiAliasEnabled();
-            const stamp = getBrushStamp(brushType, s, color, aaOn);
+        function stampLine(ctx, x0, y0, x1, y1, sourceSettings, color, alpha = 1, composite = "source-over") {
+            const settings = normalizedBrushRenderSettings(sourceSettings);
+            const stamp = getBrushStamp(settings, color);
             const dx = x1 - x0, dy = y1 - y0;
             const dist = Math.hypot(dx, dy);
-            const step = Math.max(1, s * .5);
+            const step = Math.max(1, settings.size * .5);
             const n = Math.max(1, Math.ceil(dist / step));
             const nx = dx / n, ny = dy / n;
             ctx.save();
-            ctx.globalCompositeOperation = "source-over";
-            ctx.globalAlpha = alpha;
+            ctx.globalCompositeOperation = composite;
+            ctx.globalAlpha = clamp01(alpha) * clamp01(settings.opacity);
             ctx.fillStyle = color;
             for (let i = 0; i <= n; i++) {
                 const px = Math.round(x0 + nx * i - stamp.ox);
@@ -5614,19 +5783,16 @@
                 const pressureSize = usePressureSize ? brushSize * p : brushSize;
                 const size = e?.pointerType === "pen" && usePressureTilt ? pressureSize * (1 + t * .75) : pressureSize;
                 const alpha = usePressureOpacity ? p : 1;
-                stampLine(ctx, x, y, x + .01, y + .01, size, currentColor, alpha);
+                const brushRenderSettings = mergeBrushSettings(brushSettings, {
+                    size: size
+                });
+                stampLine(ctx, x, y, x + .01, y + .01, brushRenderSettings, currentColor, alpha, "source-over");
             } else if (tool === "eraser") {
-                ctx.save();
-                ctx.globalCompositeOperation = "destination-out";
-                ctx.lineCap = "round";
-                ctx.lineJoin = "round";
                 const eraserTilt = e?.pointerType === "pen" && usePressureTilt ? 1 + t * .75 : 1;
-                ctx.lineWidth = eraserSize * eraserTilt;
-                ctx.beginPath();
-                ctx.moveTo(x, y);
-                ctx.lineTo(x + .01, y + .01);
-                ctx.stroke();
-                ctx.restore();
+                const eraserRenderSettings = mergeBrushSettings(eraserSettings, {
+                    size: eraserSize * eraserTilt
+                });
+                stampLine(ctx, x, y, x + .01, y + .01, eraserRenderSettings, "#ffffff", 1, "destination-out");
             }
             markFrameHasContent(activeLayer, currentFrame, strokeHex || hex);
             renderAll();
@@ -5702,19 +5868,16 @@
                 const pressureSize = usePressureSize ? brushSize * p : brushSize;
                 const size = e?.pointerType === "pen" && usePressureTilt ? pressureSize * (1 + t * .75) : pressureSize;
                 const alpha = usePressureOpacity ? p : 1;
-                stampLine(ctx, lastPt.x, lastPt.y, x, y, size, currentColor, alpha);
+                const brushRenderSettings = mergeBrushSettings(brushSettings, {
+                    size: size
+                });
+                stampLine(ctx, lastPt.x, lastPt.y, x, y, brushRenderSettings, currentColor, alpha, "source-over");
             } else if (tool === "eraser") {
-                ctx.save();
-                ctx.globalCompositeOperation = "destination-out";
-                ctx.lineCap = "round";
-                ctx.lineJoin = "round";
                 const eraserTilt = e?.pointerType === "pen" && usePressureTilt ? 1 + t * .75 : 1;
-                ctx.lineWidth = eraserSize * eraserTilt;
-                ctx.beginPath();
-                ctx.moveTo(lastPt.x, lastPt.y);
-                ctx.lineTo(x, y);
-                ctx.stroke();
-                ctx.restore();
+                const eraserRenderSettings = mergeBrushSettings(eraserSettings, {
+                    size: eraserSize * eraserTilt
+                });
+                stampLine(ctx, lastPt.x, lastPt.y, x, y, eraserRenderSettings, "#ffffff", 1, "destination-out");
             }
             lastPt = {
                 x: x,
@@ -8639,6 +8802,13 @@
                     snapFrames = Math.max(1, parseInt(data.snapFrames || 1, 10));
                     brushSize = clamp(parseInt(data.brushSize || 3, 10), 1, 200);
                     eraserSize = clamp(parseInt(data.eraserSize || 100, 10), 1, 400);
+                    brushSettings = mergeBrushSettings(brushSettings, {
+                        size: brushSize
+                    });
+                    eraserSettings = mergeBrushSettings(eraserSettings, {
+                        size: eraserSize
+                    });
+                    brushType = brushSettings.shape;
                     currentColor = data.currentColor || "#000000";
                     canvasBgColor = data.canvasBgColor || "#bfbfbf";
                     antiAlias = !!data.antiAlias;
@@ -9795,11 +9965,27 @@
             if (tool !== "rect-select" && rectSelection.active && !rectSelection.moving) {
                 clearRectSelection();
             }
+            refreshToolSettingsUI();
+            scheduleBrushPreviewUpdate(true);
             updateHUD();
             clearFx();
         });
-        brushSeg?.addEventListener("change", () => {
-            brushType = document.querySelector('input[name="brush"]:checked')?.value || "circle";
+        brushShapeSeg?.addEventListener("change", () => {
+            const selectedShape = document.querySelector('input[name="brushShape"]:checked')?.value || "circle";
+            if (tool === "eraser") {
+                eraserSettings = mergeBrushSettings(eraserSettings, {
+                    shape: selectedShape
+                });
+                eraserSize = eraserSettings.size;
+            } else {
+                brushSettings = mergeBrushSettings(brushSettings, {
+                    shape: selectedShape
+                });
+                brushType = brushSettings.shape;
+                brushSize = brushSettings.size;
+            }
+            refreshToolSettingsUI();
+            scheduleBrushPreviewUpdate(true);
             updateHUD();
             clearFx();
         });
@@ -9868,10 +10054,20 @@
             return Math.max(min, Math.min(max, Number.isFinite(n) ? n : brushSize));
         };
         const applyBrushSizeUi = v => {
-            brushSize = clampBrushSizeUiValue(v);
-            safeSetValue(brushSizeInput, brushSize);
-            safeSetValue(brushSizeNumInput, brushSize);
-            safeText(brushVal, String(brushSize));
+            const nextSize = clampBrushSizeUiValue(v);
+            if (tool === "eraser") {
+                eraserSettings = mergeBrushSettings(eraserSettings, {
+                    size: nextSize
+                });
+                eraserSize = eraserSettings.size;
+            } else {
+                brushSettings = mergeBrushSettings(brushSettings, {
+                    size: nextSize
+                });
+                brushType = brushSettings.shape;
+                brushSize = brushSettings.size;
+            }
+            refreshToolSettingsUI();
             try {
                 scheduleBrushPreviewUpdate?.(true);
             } catch {}
@@ -9884,8 +10080,34 @@
         });
         eraserSizeInput?.addEventListener("input", e => {
             eraserSize = parseInt(e.target.value, 10);
+            eraserSettings = mergeBrushSettings(eraserSettings, {
+                size: eraserSize
+            });
             safeText(eraserVal, String(eraserSize));
+            refreshToolSettingsUI();
         });
+        toolOpacityRange?.addEventListener("input", e => {
+            const v = clamp01((parseInt(e.target.value, 10) || 100) / 100);
+            setActiveToolSettings({
+                opacity: v
+            });
+            _brushStampCache.clear();
+            scheduleBrushPreviewUpdate(true);
+            refreshToolSettingsUI();
+        });
+        toolAngleRange?.addEventListener("input", e => {
+            const v = Math.max(-90, Math.min(90, parseInt(e.target.value, 10) || 0));
+            setActiveToolSettings({
+                angle: v
+            });
+            _brushMaskCache.clear();
+            _brushStampCache.clear();
+            scheduleBrushPreviewUpdate(true);
+            refreshToolSettingsUI();
+        });
+        wireToolSettingsFolds();
+        wireBrushShapeTooltips();
+        refreshToolSettingsUI();
         pressureSizeToggle?.addEventListener("change", e => usePressureSize = e.target.checked);
         pressureOpacityToggle?.addEventListener("change", e => usePressureOpacity = e.target.checked);
         pressureTiltToggle?.addEventListener("change", e => usePressureTilt = e.target.checked);

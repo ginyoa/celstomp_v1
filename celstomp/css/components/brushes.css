@@ -1,111 +1,192 @@
-/* Island Tools Context */
-#islandBrushesSlot{
-  min-width: 0;
-  overflow: hidden;
-  display: flex;
-  flex-direction: row;
-  justify-content: center; 
-  align-items: center;
-  gap: 8px;
-}
-
-#islandBrushesSlot #brushSeg{
+#toolSettingsSection{
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(0,0,0,0.18);
+  border-radius: 0;
+  padding: 6px;
   display: grid;
-  grid-template-columns: repeat(2, 34px);
-  grid-auto-rows: 34px;
-  gap: 8px;
-
-  width: fit-content;
-  max-width: 100%;
+  gap: 6px;
 }
 
-#islandBrushesSlot #brushSeg > input{
+.sideSectionHead{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sideSectionTitle{
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.82);
+}
+
+.toolFold{
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(0,0,0,0.18);
+}
+
+.toolFoldBtn{
+  width: 100%;
+  min-height: 28px;
+  border: 0;
+  border-bottom: 1px solid rgba(255,255,255,0.12);
+  border-radius: 0;
+  background: rgba(255,255,255,0.03);
+  color: rgba(255,255,255,0.86);
+  text-align: left;
+  padding: 0 8px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.toolFoldBtn[aria-expanded="false"]{
+  border-bottom-color: transparent;
+}
+
+.toolFoldBody{
+  padding: 6px;
+  display: grid;
+  gap: 6px;
+}
+
+.toolFoldBody[hidden]{
+  display: none;
+}
+
+#brushShapeSeg{
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+@media (max-width: 880px){
+  #brushShapeSeg{
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px){
+  #brushShapeSeg{
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+#brushShapeSeg > input{
   position: absolute;
   opacity: 0;
   pointer-events: none;
 }
 
-#islandBrushesSlot #brushSeg > label{
-  width: 34px !important;
-  height: 34px !important;
-  aspect-ratio: 1 / 1;
-  flex: 0 0 auto; 
-  min-width: 0;
-  padding: 0 !important;
-
-  border-radius: 0px;
+#brushShapeSeg > label{
+  height: 28px;
   border: 1px solid rgba(255,255,255,0.14);
-  background-color: rgba(0,0,0,0.18);
-
-  display: grid !important;
+  border-radius: 0;
+  background: rgba(0,0,0,0.18);
+  display: grid;
   place-items: center;
-
-  background-image: var(--brush-icon);
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: contain;
-
-  font-size: 0;
-  line-height: 0;
   cursor: pointer;
 }
 
-#islandBrushesSlot #brushSeg > label::before{
+#brushShapeSeg > label::before{
   content: "";
-  width: 20px;
-  height: 20px;
-  background: rgba(255,255,255,0.92); 
-  -webkit-mask-image: var(--brush-icon);
-  -webkit-mask-repeat: no-repeat;
-  -webkit-mask-position: center;
-  -webkit-mask-size: contain;
-  mask-image: var(--brush-icon);
-  mask-repeat: no-repeat;
-  mask-position: center;
-  mask-size: contain;
+  width: 14px;
+  height: 14px;
+  border: 1px solid rgba(255,255,255,0.95);
+  background: transparent;
+  box-sizing: border-box;
 }
 
-#islandBrushesSlot #brushSeg > label[data-brush="circle"]       { --brush-icon: url("../../icons/brush-circle.svg"); }
-#islandBrushesSlot #brushSeg > label[data-brush="oval"]         { --brush-icon: url("../../icons/brush-oval.svg"); }
-#islandBrushesSlot #brushSeg > label[data-brush="oval-vertical"]{ --brush-icon: url("../../icons/brush-oval-vertical.svg"); }
-#islandBrushesSlot #brushSeg > label[data-brush="square"]       { --brush-icon: url("../../icons/brush-square.svg"); }
+#brushShapeSeg > label[data-brush-shape="circle"]::before{
+  border-radius: 50%;
+}
 
-#islandBrushesSlot #brushSeg > input:checked + label{
-  outline: 2px solid rgba(120, 200, 255, 0.90);
+#brushShapeSeg > label[data-brush-shape="square"]::before{
+  border-radius: 0;
+}
+
+#brushShapeSeg > label[data-brush-shape="diamond"]::before{
+  transform: rotate(45deg);
+}
+
+#brushShapeSeg > label[data-brush-shape="oval-h"]::before{
+  width: 16px;
+  height: 10px;
+  border-radius: 999px;
+}
+
+#brushShapeSeg > label[data-brush-shape="oval-v"]::before{
+  width: 10px;
+  height: 16px;
+  border-radius: 999px;
+}
+
+#brushShapeSeg > label[data-brush-shape="rect-h"]::before{
+  width: 16px;
+  height: 8px;
+}
+
+#brushShapeSeg > label[data-brush-shape="rect-v"]::before{
+  width: 8px;
+  height: 16px;
+}
+
+#brushShapeSeg > label[data-brush-shape="triangle"]::before{
+  border: 0;
+  width: 0;
+  height: 0;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-bottom: 12px solid rgba(255,255,255,0.95);
+}
+
+#brushShapeSeg > input:checked + label{
+  outline: 2px solid rgba(120, 200, 255, 0.9);
   outline-offset: 0;
 }
 
-@media (max-width: 720px){
-  #islandBrushesSlot #brushSeg{
-    grid-template-columns: repeat(2, 30px);
-    grid-auto-rows: 30px;
-    gap: 6px;
-  }
-  #islandBrushesSlot #brushSeg > label{
-    width: 30px !important;
-    height: 30px !important;
-    border-radius: 0 !important;
-  }
-  #islandBrushesSlot #brushSeg > label::before{
-    width: 18px;
-    height: 18px;
-  }
+.sideRangeRow{
+  display: grid;
+  gap: 4px;
+  font-size: 11px;
+  color: rgba(255,255,255,0.85);
 }
 
-@media (max-width: 480px){
-  #islandBrushesSlot #brushSeg{
-    grid-template-columns: repeat(2, 28px);
-    grid-auto-rows: 28px;
-    gap: 6px;
-  }
+.sideRangeControls{
+  display: grid;
+  grid-template-columns: 1fr 56px;
+  gap: 6px;
+  align-items: center;
+}
 
-  #islandBrushesSlot #brushSeg > label{
-    width: 28px !important;
-    height: 28px !important;
-  }
+.sideRangeControls.sideRangeSolo{
+  grid-template-columns: 1fr;
+}
 
-  #islandBrushesSlot #brushSeg > label::before{
-    width: 17px;
-    height: 17px;
-  }
+#toolSettingsSection input[type="number"]{
+  min-height: 28px;
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 0;
+  background: rgba(0,0,0,0.18);
+  color: rgba(255,255,255,0.9);
+  padding: 0 6px;
+}
+
+#toolSettingsSection input[type="range"]{
+  width: 100%;
+  accent-color: #e53935;
+}
+
+.brushShapeTooltip{
+  position: fixed;
+  z-index: 2147483001;
+  pointer-events: none;
+  padding: 3px 6px;
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 0;
+  background: rgba(18,20,24,0.95);
+  color: rgba(255,255,255,0.9);
+  font-size: 11px;
+  line-height: 1.2;
+  white-space: nowrap;
 }

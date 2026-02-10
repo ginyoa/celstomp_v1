@@ -39,28 +39,33 @@
     }
 
     const brushes = [
-        {id: 'brush-circle', val: 'circle', label: 'Circle', checked: true },
-        {id: 'brush-oval', val: 'oval', label: 'Oval'},
-        {id: 'brush-oval-vertical', val: 'oval-vertical', label: 'Oval Vertical'},
-        {id: 'brush-square', val: 'square', label: 'Square'},
+        { id: 'shape-circle', val: 'circle', label: 'Circle', checked: true },
+        { id: 'shape-square', val: 'square', label: 'Square' },
+        { id: 'shape-diamond', val: 'diamond', label: 'Diamond' },
+        { id: 'shape-oval-h', val: 'oval-h', label: 'Horizontal oval' },
+        { id: 'shape-oval-v', val: 'oval-v', label: 'Vertical oval' },
+        { id: 'shape-rect-h', val: 'rect-h', label: 'Rectangle horizontal' },
+        { id: 'shape-rect-v', val: 'rect-v', label: 'Rectangle vertical' },
+        { id: 'shape-triangle', val: 'triangle', label: 'Triangle' }
     ];
-    const brushesContainer = document.getElementById('brushSeg');
+    const brushesContainer = document.getElementById('brushShapeSeg');
     if (brushesContainer) {
         const frag = document.createDocumentFragment();
         brushes.forEach(t => {
             const inp = document.createElement('input');
             inp.type = 'radio';
-            inp.name = 'brush';
+            inp.name = 'brushShape';
             inp.id = t.id;
             inp.value = t.val;
-            inp.dataset.brush = t.val;
+            inp.dataset.brushShape = t.val;
             if (t.checked) inp.checked = true;
 
             const lbl = document.createElement('label');
             lbl.htmlFor = t.id;
-            lbl.dataset.brush = t.val;
-            lbl.textContent = t.label;
-            lbl.style = ("")
+            lbl.dataset.brushShape = t.val;
+            lbl.setAttribute('aria-label', t.label);
+            lbl.title = t.label;
+            lbl.textContent = '';
 
             frag.appendChild(inp);
             frag.appendChild(lbl);

@@ -44,18 +44,6 @@ document.getElementById('part-app').innerHTML = `
 
           <div class="seg" id="toolSeg"></div>
 
-          <div id="mainBrushSizeGroup" class="mainBrushSizeGroup" aria-label="Brush size controls">
-            <label for="brushSizeRange">Brush Size</label>
-            <div id="mainBrushSizeControls" class="mainBrushSizeControls">
-              <input id="brushSizeRange" type="range" min="1" max="400" step="1" value="3" />
-              <input id="brushSizeNum" type="number" min="1" max="400" step="1" value="3" inputmode="numeric" />
-            </div>
-          </div>
-
-          <div class="islandPanel islandBrushesSlot" id="islandBrushesSlot">
-            <div class="seg" id="brushSeg"></div>
-          </div>
-
         </div>
 
       </div>
