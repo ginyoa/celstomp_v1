@@ -481,6 +481,8 @@
         const loadProjBtn = document.getElementById("loadProj");
         const loadFileInp = document.getElementById("loadFileInp");
         const restoreAutosaveBtn = document.getElementById("restoreAutosave");
+        const toggleAutosaveBtn = document.getElementById("toggleAutosaveBtn");
+        const autosaveIntervalBtn = document.getElementById("autosaveIntervalBtn");
         const saveStateBadgeEl = document.getElementById("saveStateBadge");
         const exportImgSeqBtn = document.getElementById("exportImgSeqBtn") || document.getElementById("exportImgSeq");
         const clearAllModal = document.getElementById("clearAllModal");
@@ -500,6 +502,11 @@
         const exportGifLoopToggle = document.getElementById("exportGifLoop");
         const exportGifConfirmBtn = document.getElementById("exportGifConfirmBtn");
         const exportGifCancelBtn = document.getElementById("exportGifCancelBtn");
+        const autosaveIntervalModal = document.getElementById("autosaveIntervalModal");
+        const autosaveIntervalModalBackdrop = document.getElementById("autosaveIntervalModalBackdrop");
+        const autosaveIntervalMinutesInput = document.getElementById("autosaveIntervalMinutesInput");
+        const autosaveIntervalConfirmBtn = document.getElementById("autosaveIntervalConfirmBtn");
+        const autosaveIntervalCancelBtn = document.getElementById("autosaveIntervalCancelBtn");
         const topMenuBar = document.getElementById("topMenuBar");
         const menuFileBtn = document.getElementById("menuFileBtn");
         const menuFilePanel = document.getElementById("menuFilePanel");
@@ -3941,6 +3948,38 @@
                 exportGifConfirmBtn.addEventListener("click", onConfirm);
                 exportGifCancelBtn.addEventListener("click", onCancel);
                 exportGifModalBackdrop.addEventListener("click", onCancel);
+                document.addEventListener("keydown", onEsc);
+            });
+        }
+        function askAutosaveIntervalOptions() {
+            return new Promise(resolve => {
+                if (!autosaveIntervalModal || !autosaveIntervalModalBackdrop || !autosaveIntervalConfirmBtn || !autosaveIntervalCancelBtn) {
+                    resolve(null);
+                    return;
+                }
+                safeSetValue(autosaveIntervalMinutesInput, autosaveIntervalMinutes);
+                autosaveIntervalModal.hidden = false;
+                autosaveIntervalModalBackdrop.hidden = false;
+                const cleanup = value => {
+                    autosaveIntervalModal.hidden = true;
+                    autosaveIntervalModalBackdrop.hidden = true;
+                    autosaveIntervalConfirmBtn.removeEventListener("click", onConfirm);
+                    autosaveIntervalCancelBtn.removeEventListener("click", onCancel);
+                    autosaveIntervalModalBackdrop.removeEventListener("click", onCancel);
+                    document.removeEventListener("keydown", onEsc);
+                    resolve(value);
+                };
+                const onConfirm = () => {
+                    const mins = clamp(parseInt(autosaveIntervalMinutesInput?.value, 10) || autosaveIntervalMinutes || 1, 1, 120);
+                    cleanup(mins);
+                };
+                const onCancel = () => cleanup(null);
+                const onEsc = e => {
+                    if (e.key === "Escape") cleanup(null);
+                };
+                autosaveIntervalConfirmBtn.addEventListener("click", onConfirm);
+                autosaveIntervalCancelBtn.addEventListener("click", onCancel);
+                autosaveIntervalModalBackdrop.addEventListener("click", onCancel);
                 document.addEventListener("keydown", onEsc);
             });
         }
@@ -8363,10 +8402,40 @@
             }
             return out;
         }
+        const AUTOSAVE_ENABLED_KEY = "celstomp.autosave.enabled.v1";
+        const AUTOSAVE_INTERVAL_MIN_KEY = "celstomp.autosave.interval.min.v1";
+        function readAutosaveEnabledSetting() {
+            try {
+                const raw = localStorage.getItem(AUTOSAVE_ENABLED_KEY);
+                if (raw === "1" || raw === "true") return true;
+                if (raw === "0" || raw === "false") return false;
+            } catch {}
+            return false;
+        }
+        function readAutosaveIntervalMinutesSetting() {
+            try {
+                const raw = Number(localStorage.getItem(AUTOSAVE_INTERVAL_MIN_KEY) || 1);
+                if (Number.isFinite(raw)) return clamp(Math.round(raw), 1, 120);
+            } catch {}
+            return 1;
+        }
+        function writeAutosaveEnabledSetting(v) {
+            try {
+                localStorage.setItem(AUTOSAVE_ENABLED_KEY, v ? "1" : "0");
+            } catch {}
+        }
+        function writeAutosaveIntervalMinutesSetting(v) {
+            try {
+                localStorage.setItem(AUTOSAVE_INTERVAL_MIN_KEY, String(clamp(Math.round(v), 1, 120)));
+            } catch {}
+        }
+        let autosaveEnabled = readAutosaveEnabledSetting();
+        let autosaveIntervalMinutes = readAutosaveIntervalMinutesSetting();
         const autosaveController = window.CelstompAutosave?.createController?.({
             autosaveKey: "celstomp.project.autosave.v1",
             manualSaveMetaKey: "celstomp.project.manualsave.v1",
-            intervalMs: 45000,
+            enabled: autosaveEnabled,
+            intervalMs: autosaveIntervalMinutes * 60000,
             badgeEl: saveStateBadgeEl,
             buildSnapshot: async () => await buildProjectSnapshot(),
             pointerSelectors: [ "#drawCanvas", "#fillCurrent", "#fillAll", "#tlDupCel", "#toolSeg label", "#layerSeg .layerRow", "#timelineTable td" ],
@@ -8380,6 +8449,24 @@
                 });
             }
         }) || null;
+        function syncAutosaveUiState() {
+            const enabled = autosaveController?.isEnabled?.() ?? autosaveEnabled;
+            const minutes = Math.max(1, Math.round((autosaveController?.getIntervalMs?.() ?? autosaveIntervalMinutes * 60000) / 60000));
+            autosaveEnabled = !!enabled;
+            autosaveIntervalMinutes = minutes;
+            if (toggleAutosaveBtn) {
+                toggleAutosaveBtn.textContent = autosaveEnabled ? "Disable Autosave" : "Enable Autosave";
+                toggleAutosaveBtn.setAttribute("aria-pressed", autosaveEnabled ? "true" : "false");
+            }
+            if (autosaveIntervalBtn) {
+                autosaveIntervalBtn.textContent = `Autosave Interval (${autosaveIntervalMinutes} min)`;
+            }
+            if (!autosaveEnabled) {
+                setSaveStateBadge("Autosave Off", "");
+            }
+            writeAutosaveEnabledSetting(autosaveEnabled);
+            writeAutosaveIntervalMinutesSetting(autosaveIntervalMinutes);
+        }
         function setSaveStateBadge(text, tone = "") {
             if (autosaveController) {
                 autosaveController.setBadge(text, tone);
@@ -9927,6 +10014,26 @@
                 exportGIFBtn.textContent = oldTxt;
             }
         });
+        toggleAutosaveBtn?.addEventListener("click", e => {
+            e.preventDefault();
+            e.stopPropagation();
+            autosaveEnabled = !autosaveEnabled;
+            autosaveController?.setEnabled?.(autosaveEnabled);
+            if (autosaveEnabled) {
+                autosaveController?.markClean?.("Autosave On");
+            }
+            syncAutosaveUiState();
+            updateRestoreAutosaveButton();
+        });
+        autosaveIntervalBtn?.addEventListener("click", async e => {
+            e.preventDefault();
+            e.stopPropagation();
+            const minutes = await askAutosaveIntervalOptions();
+            if (!minutes) return;
+            autosaveIntervalMinutes = clamp(Number(minutes) || autosaveIntervalMinutes || 1, 1, 120);
+            autosaveController?.setIntervalMs?.(autosaveIntervalMinutes * 60000);
+            syncAutosaveUiState();
+        });
         function initSaveLoadWiring() {
             if (window.__CELSTOMP_SAVELOAD_WIRED__) return;
             window.__CELSTOMP_SAVELOAD_WIRED__ = true;
@@ -9961,10 +10068,11 @@
                     source: "file"
                 });
             });
-            setSaveStateBadge("Saved");
+            if (autosaveEnabled) setSaveStateBadge("Saved");
             wireAutosaveDirtyTracking();
             updateRestoreAutosaveButton();
-            window.setTimeout(maybePromptAutosaveRecovery, 0);
+            if (autosaveEnabled) window.setTimeout(maybePromptAutosaveRecovery, 0);
+            syncAutosaveUiState();
         }
         if (document.readyState === "loading") {
             window.addEventListener("DOMContentLoaded", initSaveLoadWiring, {

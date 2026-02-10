@@ -9,6 +9,9 @@ document.getElementById('part-header').innerHTML = `
             <button id="loadProj" class="topMenuItem" type="button" role="menuitem">Load</button>
             <button id="restoreAutosave" class="topMenuItem" type="button" role="menuitem" title="Restore latest autosaved draft" disabled>Restore Draft</button>
             <div class="topMenuSep" role="separator"></div>
+            <button id="toggleAutosaveBtn" class="topMenuItem" type="button" role="menuitem">Enable Autosave</button>
+            <button id="autosaveIntervalBtn" class="topMenuItem" type="button" role="menuitem">Autosave Interval...</button>
+            <div class="topMenuSep" role="separator"></div>
             <div class="topSubmenuWrap">
               <button id="menuExportBtn" class="topMenuItem topSubmenuTrigger" type="button" role="menuitem" aria-haspopup="true" aria-expanded="false" aria-controls="menuExportPanel">Export</button>
               <div id="menuExportPanel" class="topSubmenuPanel" role="menu" hidden>
@@ -85,32 +88,20 @@ document.getElementById('part-header').innerHTML = `
       </p>
 
       <div class="infoBtns">
-
-        <a class="infoLinkBtn" href="https://ko-fi.com/ginyoa" target="_blank" rel="noopener">Support me on Kofi!</a>
-        <a class="infoLinkBtn" href="https://instagram.com/ginyoagoldie" target="_blank" rel="noopener">Instagram</a>
-        <a class="infoLinkBtn" href="https://x.com/ginyoagoldie" target="_blank" rel="noopener">Twitter</a>
+        <a class="infoLinkBtn" href="https://github.com/ginyoa/celstomp_v1/" target="_blank" rel="noopener">GitHub Repository</a>
+        <a class="infoLinkBtn" href="https://ko-fi.com/ginyoa" target="_blank" rel="noopener">Support on Ko-fi</a>
+        <a class="infoLinkBtn" href="https://x.com/ginyoagoldie" target="_blank" rel="noopener">Follow Updates</a>
       </div>
 
       <hr class="infoHr" />
 
       <h3 class="infoH3">About Celstomp</h3>
       <ul class="infoList">
-
-
-        <li>This site is vibecoded (coded with the help of AI). I am by no means in any way a traditional programmer, I
-          had just wanted to make animation more accessible and intuitive!</li>
-
-
-        <li>Its limited to a simple pixel brush and a simple layer system</li>
-
-        <li>Shortcuts: 1, 2, 3, 4, 5, 6 for the Tools</li>
-        <li>Up/Down or Q/W for Prev/Next Cel</li>
-        <li>Left/Right or E/R for Prev/Next Frame</li>
-        <li>You can drag the colored squares in the layer to reorder the layering of it</li>
-
-
-
-        <li>Right click on some of the tools + onion skin to reveal more settings</li>
+        <li>Celstomp is being actively rewritten by collaborators to move away from AI-generated code and improve maintainability.</li>
+        <li>Current build supports layered cel animation with timeline tools, export options, and autosave controls.</li>
+        <li>Shortcuts: 1-8 tools, Q/W or Up/Down for cels, E/R or Left/Right for frames.</li>
+        <li>Right-click brush/eraser/onion controls to access additional settings.</li>
+        <li>Use the GitHub repository button above for roadmap, issues, and source updates.</li>
       </ul>
     </div>
   </aside>

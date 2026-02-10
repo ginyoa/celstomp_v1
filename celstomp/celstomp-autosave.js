@@ -4,7 +4,8 @@
   function createController(options = {}) {
     const autosaveKey = String(options.autosaveKey || "celstomp.project.autosave.v1");
     const manualSaveMetaKey = String(options.manualSaveMetaKey || "celstomp.project.manualsave.v1");
-    const intervalMs = Math.max(5000, Number(options.intervalMs || 45000));
+    let intervalMs = Math.max(5000, Number(options.intervalMs || 45000));
+    let enabled = !!options.enabled;
     const badgeEl = options.badgeEl || null;
     const buildSnapshot = options.buildSnapshot;
     const onRestorePayload = options.onRestorePayload;
@@ -21,6 +22,7 @@
     let dirty = false;
     let busy = false;
     let wired = false;
+    let intervalId = 0;
 
     function formatClock(ts) {
       const d = new Date(ts);
@@ -85,7 +87,7 @@
     }
 
     async function runAutosave(reason = "interval") {
-      if (busy || !dirty) return false;
+      if (!enabled || busy || !dirty) return false;
       busy = true;
       setBadge("Autosaving...", "saving");
 
@@ -133,12 +135,13 @@
       }
 
       window.addEventListener("beforeunload", (e) => {
-        if (!dirty) return;
+        if (!enabled || !dirty) return;
         e.preventDefault();
         e.returnValue = "";
       });
 
-      window.setInterval(() => {
+      if (intervalId) window.clearInterval(intervalId);
+      intervalId = window.setInterval(() => {
         void runAutosave("interval");
       }, intervalMs);
 
@@ -177,6 +180,34 @@
       return true;
     }
 
+    function setEnabled(next) {
+      enabled = !!next;
+      if (!enabled) {
+        setBadge("Autosave Off", "");
+        return;
+      }
+      setBadge(dirty ? "Unsaved" : "Autosave On", dirty ? "dirty" : "");
+    }
+
+    function isEnabled() {
+      return !!enabled;
+    }
+
+    function setIntervalMs(nextMs) {
+      const ms = Math.max(5000, Number(nextMs || intervalMs));
+      intervalMs = ms;
+      if (wired) {
+        if (intervalId) window.clearInterval(intervalId);
+        intervalId = window.setInterval(() => {
+          void runAutosave("interval");
+        }, intervalMs);
+      }
+    }
+
+    function getIntervalMs() {
+      return intervalMs;
+    }
+
     return {
       setBadge,
       markDirty,
@@ -188,6 +219,10 @@
       promptRecovery,
       restoreLatest,
       runAutosave,
+      setEnabled,
+      isEnabled,
+      setIntervalMs,
+      getIntervalMs,
     };
   }
 
