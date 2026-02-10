@@ -348,21 +348,21 @@
             if (!panel) return [];
             return Array.from(panel.querySelectorAll("button:not([disabled]), select, input[type='checkbox']")).filter(el => !el.hidden);
         }
-        function closeExportSubmenu() {
-            if (menuExportPanel) menuExportPanel.hidden = true;
-            if (menuExportBtn) menuExportBtn.setAttribute("aria-expanded", "false");
+        function closeSubmenu(triggerBtn, panel) {
+            if (panel) panel.hidden = true;
+            if (triggerBtn) triggerBtn.setAttribute("aria-expanded", "false");
         }
-        function openExportSubmenu() {
-            if (!menuExportPanel || !menuExportBtn) return;
-            menuExportPanel.hidden = false;
-            menuExportBtn.setAttribute("aria-expanded", "true");
+        function openSubmenu(triggerBtn, panel) {
+            if (!panel || !triggerBtn) return;
+            panel.hidden = false;
+            triggerBtn.setAttribute("aria-expanded", "true");
         }
         function closeTopMenus() {
             [ [ menuFileBtn, menuFilePanel ], [ menuEditBtn, menuEditPanel ], [ menuToolBehaviorBtn, menuToolBehaviorPanel ] ].forEach(([btn, panel]) => {
                 if (panel) panel.hidden = true;
                 btn?.setAttribute("aria-expanded", "false");
             });
-            closeExportSubmenu();
+            [ [ menuExportBtn, menuExportPanel ], [ menuAutosaveBtn, menuAutosavePanel ] ].forEach(([btn, panel]) => closeSubmenu(btn, panel));
         }
         function openTopMenu(btn, panel) {
             if (!btn || !panel) return;
@@ -397,18 +397,20 @@
                     }
                 });
             });
-            menuExportBtn?.addEventListener("click", e => {
-                e.preventDefault();
-                e.stopPropagation();
-                if (menuExportPanel?.hidden) openExportSubmenu(); else closeExportSubmenu();
-            });
-            menuExportBtn?.addEventListener("keydown", e => {
-                if (e.key === "ArrowRight" || e.key === "Enter" || e.key === " ") {
+            [ [ menuExportBtn, menuExportPanel ], [ menuAutosaveBtn, menuAutosavePanel ] ].forEach(([btn, panel]) => {
+                btn?.addEventListener("click", e => {
                     e.preventDefault();
-                    openExportSubmenu();
-                    const first = menuFocusableItems(menuExportPanel)[0];
-                    first?.focus?.();
-                }
+                    e.stopPropagation();
+                    if (panel?.hidden) openSubmenu(btn, panel); else closeSubmenu(btn, panel);
+                });
+                btn?.addEventListener("keydown", e => {
+                    if (e.key === "ArrowRight" || e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        openSubmenu(btn, panel);
+                        const first = menuFocusableItems(panel)[0];
+                        first?.focus?.();
+                    }
+                });
             });
             const wirePanelKeys = panel => {
                 panel?.addEventListener("keydown", e => {
@@ -424,10 +426,11 @@
                     } else if (e.key === "Escape") {
                         e.preventDefault();
                         closeTopMenus();
-                    } else if (e.key === "ArrowLeft" && panel === menuExportPanel) {
+                    } else if (e.key === "ArrowLeft" && panel?.classList?.contains("topSubmenuPanel")) {
                         e.preventDefault();
-                        closeExportSubmenu();
-                        menuExportBtn?.focus?.();
+                        const trigger = topMenuBar?.querySelector(`.topSubmenuTrigger[aria-controls="${panel.id}"]`) || null;
+                        closeSubmenu(trigger, panel);
+                        trigger?.focus?.();
                     }
                 });
             };
@@ -435,15 +438,16 @@
             wirePanelKeys(menuEditPanel);
             wirePanelKeys(menuToolBehaviorPanel);
             wirePanelKeys(menuExportPanel);
+            wirePanelKeys(menuAutosavePanel);
             document.addEventListener("mousedown", e => {
                 if (!topMenuBar.contains(e.target)) closeTopMenus();
             });
             document.addEventListener("keydown", e => {
                 if (e.key === "Escape") closeTopMenus();
             });
-            [ menuFilePanel, menuEditPanel, menuToolBehaviorPanel, menuExportPanel ].forEach(panel => {
+            [ menuFilePanel, menuEditPanel, menuToolBehaviorPanel, menuExportPanel, menuAutosavePanel ].forEach(panel => {
                 panel?.addEventListener("click", e => {
-                    if (e.target.closest("button") && e.target.id !== "menuExportBtn") {
+                    if (e.target.closest("button") && !e.target.closest(".topSubmenuTrigger")) {
                         closeTopMenus();
                     }
                 });
@@ -514,6 +518,8 @@
         const menuEditPanel = document.getElementById("menuEditPanel");
         const menuToolBehaviorBtn = document.getElementById("menuToolBehaviorBtn");
         const menuToolBehaviorPanel = document.getElementById("menuToolBehaviorPanel");
+        const menuAutosaveBtn = document.getElementById("menuAutosaveBtn");
+        const menuAutosavePanel = document.getElementById("menuAutosavePanel");
         const menuExportBtn = document.getElementById("menuExportBtn");
         const menuExportPanel = document.getElementById("menuExportPanel");
         const stabilizationSelect = $("stabilizationLevel");

@@ -9,8 +9,13 @@ document.getElementById('part-header').innerHTML = `
             <button id="loadProj" class="topMenuItem" type="button" role="menuitem">Load</button>
             <button id="restoreAutosave" class="topMenuItem" type="button" role="menuitem" title="Restore latest autosaved draft" disabled>Restore Draft</button>
             <div class="topMenuSep" role="separator"></div>
-            <button id="toggleAutosaveBtn" class="topMenuItem" type="button" role="menuitem">Enable Autosave</button>
-            <button id="autosaveIntervalBtn" class="topMenuItem" type="button" role="menuitem">Autosave Interval...</button>
+            <div class="topSubmenuWrap">
+              <button id="menuAutosaveBtn" class="topMenuItem topSubmenuTrigger" type="button" role="menuitem" aria-haspopup="true" aria-expanded="false" aria-controls="menuAutosavePanel">Autosave</button>
+              <div id="menuAutosavePanel" class="topSubmenuPanel" role="menu" hidden>
+                <button id="toggleAutosaveBtn" class="topMenuItem" type="button" role="menuitem">Enable Autosave</button>
+                <button id="autosaveIntervalBtn" class="topMenuItem" type="button" role="menuitem">Autosave Interval...</button>
+              </div>
+            </div>
             <div class="topMenuSep" role="separator"></div>
             <div class="topSubmenuWrap">
               <button id="menuExportBtn" class="topMenuItem topSubmenuTrigger" type="button" role="menuitem" aria-haspopup="true" aria-expanded="false" aria-controls="menuExportPanel">Export</button>
