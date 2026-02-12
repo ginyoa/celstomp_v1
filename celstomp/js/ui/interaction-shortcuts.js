@@ -162,7 +162,7 @@ function _wireLayerQoL() {
               soloBtn.textContent = `Solo ${getLayerName(activeLayer)}`;
               soloBtn.style.background = "rgba(255,215,0,0.3)";
           }
-          renderAll();
+          queueRenderAll();
       });
   }
   if (showAllBtn) {
@@ -174,7 +174,7 @@ function _wireLayerQoL() {
               soloBtn.textContent = "Solo";
               soloBtn.style.background = "";
           }
-          renderAll();
+          queueRenderAll();
       });
   }
 }

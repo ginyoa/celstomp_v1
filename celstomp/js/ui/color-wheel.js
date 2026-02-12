@@ -3,6 +3,8 @@ let _wheelRingImg = null;
 let _wheelTriangleCanvas = null;
 let _dragMode = null;
 
+let pickerShape = "square";
+
 let hsvPick = {
     h: 0,
     s: 1,
@@ -25,6 +27,25 @@ function hitTestWheel(x, y) {
     const dx = x - g.R;
     const dy = y - g.R;
     const dist = Math.hypot(dx, dy);
+
+    if (pickerShape === "triangle") {
+        if (dist >= g.ringInner && dist <= g.ringOuter) return "hue";
+        const triR = Math.floor(g.ringInner * 0.90);
+        const angH = (hsvPick.h - 90) * (Math.PI / 180);
+        const x1 = Math.cos(angH) * triR;
+        const y1 = Math.sin(angH) * triR;
+        const x2 = Math.cos(angH + 2 * Math.PI / 3) * triR;
+        const y2 = Math.sin(angH + 2 * Math.PI / 3) * triR;
+        const x3 = Math.cos(angH + 4 * Math.PI / 3) * triR;
+        const y3 = Math.sin(angH + 4 * Math.PI / 3) * triR;
+        const detT = (y2 - y3) * (x1 - x3) + (x3 - x2) * (y1 - y3);
+        const l1 = ((y2 - y3) * (dx - x3) + (x3 - x2) * (dy - y3)) / detT;
+        const l2 = ((y3 - y1) * (dx - x3) + (x1 - x3) * (dy - y3)) / detT;
+        const l3 = 1 - l1 - l2;
+        if (l1 >= 0 && l2 >= 0 && l3 >= 0) return "sv";
+        return null;
+    }
+
     const inRing = dist >= g.ringInner && dist <= g.ringOuter;
     const inSquare = x >= g.sqLeft && x <= g.sqLeft + g.sqSize && y >= g.sqTop && y <= g.sqTop + g.sqSize;
     if (inSquare) return "sv";
@@ -47,6 +68,7 @@ function updateFromSVPoint(x, y) {
     const g = _wheelGeom;
 
     if (pickerShape === "triangle") {
+        console.log("triangle hit test");
         const dx = x - g.R;
         const dy = y - g.R;
         const triR = Math.floor(g.ringInner * 0.90);
@@ -74,7 +96,7 @@ function updateFromSVPoint(x, y) {
         hsvPick.s = sx;
         hsvPick.v = vy;
     }
-    
+
     const rgb = hsvToRgb(hsvPick.h, hsvPick.s, hsvPick.v);
     currentColor = rgbToHex(rgb.r, rgb.g, rgb.b);
     setColorSwatch();
@@ -121,6 +143,18 @@ function initHSVWheelPicker() {
         _dragMode = null;
     });
     new ResizeObserver(() => drawHSVWheel()).observe(hsvWheelWrap);
+
+    const triCheck = document.getElementById("trianglePickerToggle");
+    if (triCheck) {
+        triCheck.checked = pickerShape === "triangle";
+        triCheck.addEventListener("change", e => {
+            pickerShape = e.target.checked ? "triangle" : "square";
+            try {
+                localStorage.setItem("celstomp_picker_shape", pickerShape);
+            } catch {}
+            drawHSVWheel();
+        });
+    }
 }
 
 function computeWheelGeom() {
@@ -237,6 +271,8 @@ function buildSVTriangleImage(geom) {
 }
 
 function drawHSVWheel() {
+
+    console.warn("wheel redraw: ", pickerShape);
     const hsvWheelCanvas = $("hsvWheelCanvas");
     if (!hsvWheelCanvas) return;
     
@@ -269,8 +305,21 @@ function drawHSVWheel() {
         ctx.strokeRect(geom.sqLeft + .5, geom.sqTop + .5, geom.sqSize - 1, geom.sqSize - 1);
         ctx.restore();
     }
-    const mx = geom.sqLeft + hsvPick.s * geom.sqSize;
-    const my = geom.sqTop + (1 - hsvPick.v) * geom.sqSize;
+
+    let mx, my;
+    if (pickerShape === "triangle" && triData) {
+        const v = hsvPick.v;
+        const s = hsvPick.s;
+        const l1 = s * v;
+        const l2 = v * (1 - s);
+        const l3 = 1 - v;
+        const vs = triData.vertices;
+        mx = geom.R + l1 * vs[0].x + l2 * vs[1].x + l3 * vs[2].x;
+        my = geom.R + l1 * vs[0].y + l2 * vs[1].y + l3 * vs[2].y;
+    } else {
+        mx = geom.sqLeft + hsvPick.s * geom.sqSize;
+        my = geom.sqTop + (1 - hsvPick.v) * geom.sqSize;
+    }
     ctx.save();
     ctx.beginPath();
     ctx.arc(mx, my, Math.max(5, geom.size * .02), 0, Math.PI * 2);

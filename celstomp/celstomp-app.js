@@ -148,7 +148,7 @@
         let dpr = window.devicePixelRatio || 1;
 
         let pickerInitializing = false;
-        let pickerShape = "square";
+        
         try {
             const savedShape = localStorage.getItem("celstomp_picker_shape");
             if (savedShape === "triangle") pickerShape = "triangle";

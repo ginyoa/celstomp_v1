@@ -4,3 +4,6 @@ node_modules/
 # Vite build output
 dist/
 celstomp/dist/
+
+# mac
+.DS_Store
