@@ -116,6 +116,7 @@ document.getElementById('part-header').innerHTML = `
       </p>
 
       <div class="infoBtns">
+        <button id="tutorialReplayInfoBtn" class="infoLinkBtn" type="button">Replay Tutorial</button>
         <a class="infoLinkBtn" href="https://github.com/ginyoa/celstomp_v1/" target="_blank" rel="noopener">GitHub Repository</a>
         <a class="infoLinkBtn" href="https://ko-fi.com/ginyoa" target="_blank" rel="noopener">Support on Ko-fi</a>
         <a class="infoLinkBtn" href="https://x.com/ginyoagoldie" target="_blank" rel="noopener">Follow Updates</a>

@@ -79,6 +79,7 @@
         const onionPrevColorInput = $("onionPrevColor");
         const onionNextColorInput = $("onionNextColor");
         const onionAlphaInput = $("onionAlpha");
+        const onionBlendModeInput = $("onionBlendMode");
         const onionAlphaVal = $("onionAlphaVal");
         const playSnappedChk = $("playSnapped");
 
@@ -347,6 +348,12 @@
             bctx.strokeRect(0, 0, contentW, contentH);
             drawRectSelectionOverlay(fxctx);
         }
+
+        function onionCompositeOperation() {
+            if (onionBlendMode === "multiply") return "multiply";
+            if (onionBlendMode === "overlay") return "overlay";
+            return "source-over";
+        }
         
         // tba: rect, lasso, and onion should have their own locations in code
         function drawOnion(ctx) {
@@ -364,7 +371,10 @@
                 octx.globalAlpha = alpha;
                 octx.fillStyle = color;
                 octx.fillRect(0, 0, contentW, contentH);
+                ctx.save();
+                ctx.globalCompositeOperation = onionCompositeOperation();
                 ctx.drawImage(off, 0, 0);
+                ctx.restore();
             }
             if (prevIdx >= 0) tintCel(prevIdx, onionPrevTint, onionAlpha);
             if (nextIdx >= 0) tintCel(nextIdx, onionNextTint, onionAlpha);
@@ -1266,6 +1276,13 @@
             const v = parseInt(e.target.value, 10) || 20;
             onionAlpha = clamp(v / 100, .05, .8);
             safeText(onionAlphaVal, String(v));
+            renderAll();
+        });
+        onionBlendModeInput?.addEventListener("change", e => {
+            onionBlendMode = String(e.target.value || "normal").toLowerCase();
+            if (onionBlendMode !== "multiply" && onionBlendMode !== "overlay") {
+                onionBlendMode = "normal";
+            }
             renderAll();
         });
         playSnappedChk?.addEventListener("change", e => playSnapped = e.target.checked);

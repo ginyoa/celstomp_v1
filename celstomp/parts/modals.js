@@ -65,7 +65,22 @@ document.getElementById('part-modals').innerHTML = `
       </div>
     </div>
     <div class="modalActions">
+      <button id="tutorialReplayBtn" type="button">Replay Tutorial</button>
       <button id="shortcutsCloseBtn" type="button">Close</button>
+    </div>
+  </div>
+
+  <div id="tutorialModalBackdrop" class="modalBackdrop" hidden></div>
+  <div id="tutorialHighlight" aria-hidden="true" hidden></div>
+  <div id="tutorialModal" class="modalCard tutorialCard" role="dialog" aria-modal="true" aria-labelledby="tutorialStepTitle" hidden>
+    <h3 id="tutorialStepTitle">Welcome to Celstomp</h3>
+    <p id="tutorialStepBody">This short tour highlights the essentials so you can animate quickly.</p>
+    <p id="tutorialStepCounter" class="tutorialStepCounter">1 / 5</p>
+    <p id="tutorialStepHint" class="tutorialStepHint"></p>
+    <div class="modalActions">
+      <button id="tutorialBackBtn" type="button">Back</button>
+      <button id="tutorialSkipBtn" type="button">Skip</button>
+      <button id="tutorialNextBtn" type="button">Next</button>
     </div>
   </div>
 
@@ -87,6 +102,15 @@ document.getElementById('part-modals').innerHTML = `
         <label for="onionAlpha">Opacity</label>
         <input id="onionAlpha" min="5" max="80" type="range" value="50" />
         <span class="val" id="onionAlphaVal">50</span>%
+      </div>
+
+      <div class="row">
+        <label for="onionBlendMode">Blend</label>
+        <select id="onionBlendMode">
+          <option value="normal" selected>Normal</option>
+          <option value="multiply">Multiply</option>
+          <option value="overlay">Overlay</option>
+        </select>
       </div>
 
       <div class="row">
@@ -128,6 +152,30 @@ document.getElementById('part-modals').innerHTML = `
     <label class="sideSelectRow" for="exportGifFps">
       <span>FPS</span>
       <input id="exportGifFps" type="number" min="1" max="60" step="1" value="12" inputmode="numeric" />
+    </label>
+    <label class="sideSelectRow" for="exportGifQuality">
+      <span>Quality</span>
+      <select id="exportGifQuality">
+        <option value="high" selected>High</option>
+        <option value="medium">Medium</option>
+        <option value="low">Low</option>
+      </select>
+    </label>
+    <label class="sideSelectRow" for="exportGifScale">
+      <span>Scale</span>
+      <select id="exportGifScale">
+        <option value="1" selected>100%</option>
+        <option value="0.75">75%</option>
+        <option value="0.5">50%</option>
+      </select>
+    </label>
+    <label class="sideSelectRow" for="exportGifFrameStep">
+      <span>Frame step</span>
+      <select id="exportGifFrameStep">
+        <option value="1" selected>1 (All)</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+      </select>
     </label>
     <label class="chip"><input id="exportGifTransparency" type="checkbox" /> Enable transparency</label>
     <label class="chip"><input id="exportGifLoop" type="checkbox" checked /> Loop animation</label>

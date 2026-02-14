@@ -16,6 +16,7 @@ let layers = new Array(LAYERS_COUNT).fill(0).map(() => ({
   name: "",
   opacity: 1,
   prevOpacity: 1,
+  blendMode: "normal",
   frames: new Array(totalFrames).fill(null),
   sublayers: new Map,
   suborder: []
@@ -34,6 +35,36 @@ layerColorMem[LAYER.FILL] = fillWhite;
 
 const PAPER_LAYER = -1;
 let mainLayerOrder = DEFAULT_MAIN_LAYER_ORDER.slice();
+
+const LAYER_BLEND_MODES = [ "normal", "multiply", "overlay" ];
+
+function normalizeLayerBlendMode(mode) {
+    const key = String(mode || "normal").toLowerCase();
+    if (LAYER_BLEND_MODES.includes(key)) return key;
+    return "normal";
+}
+
+function layerBlendModeCanvasOperation(mode) {
+    const normalized = normalizeLayerBlendMode(mode);
+    if (normalized === "multiply") return "multiply";
+    if (normalized === "overlay") return "overlay";
+    return "source-over";
+}
+
+function getLayerBlendMode(L) {
+    const layer = layers?.[L];
+    if (!layer) return "normal";
+    const normalized = normalizeLayerBlendMode(layer.blendMode);
+    layer.blendMode = normalized;
+    return normalized;
+}
+
+function setLayerBlendMode(L, mode) {
+    const layer = layers?.[L];
+    if (!layer) return;
+    layer.blendMode = normalizeLayerBlendMode(mode);
+    queueRenderAll();
+}
 
 function getLayerName(layer) {
     switch (layer) {
@@ -561,7 +592,7 @@ function ensureLayerRowMenu() {
     const m = document.createElement("div");
     m.id = "layerRowMenu";
     m.hidden = true;
-    m.innerHTML = `\n        <button type="button" class="lrm-btn" data-act="opacity">Opacity…</button>\n      `;
+    m.innerHTML = `\n        <button type="button" class="lrm-btn" data-act="opacity">Opacity…</button>\n        <div class="lrm-sep" role="separator"></div>\n        <button type="button" class="lrm-btn" data-act="blend" data-blend="normal">Blend: Normal</button>\n        <button type="button" class="lrm-btn" data-act="blend" data-blend="multiply">Blend: Multiply</button>\n        <button type="button" class="lrm-btn" data-act="blend" data-blend="overlay">Blend: Overlay</button>\n      `;
     m.addEventListener("click", e => {
         const b = e.target.closest("button[data-act]");
         if (!b) return;
@@ -572,6 +603,10 @@ function ensureLayerRowMenu() {
         const L = st.L;
         if (act === "opacity") {
             openLayerOpacityMenu(L, st.anchorEvLike);
+            return;
+        }
+        if (act === "blend") {
+            setLayerBlendMode(L, b.dataset.blend || "normal");
             return;
         }
     });
@@ -600,6 +635,12 @@ function openLayerRowMenu(L, ev) {
         L: L,
         anchorEvLike: anchorEvLike
     };
+    const blendMode = getLayerBlendMode(L);
+    const blendBtns = m.querySelectorAll("button[data-act='blend']");
+    blendBtns.forEach(btn => {
+        const isActive = btn.dataset.blend === blendMode;
+        btn.classList.toggle("is-active", isActive);
+    });
     m.hidden = false;
     m.style.left = "0px";
     m.style.top = "0px";

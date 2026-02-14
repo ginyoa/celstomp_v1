@@ -135,6 +135,51 @@
   z-index: 12000;
 }
 
+#appBootOverlay{
+  position: fixed;
+  inset: 0;
+  z-index: 13000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 50% 40%, #1a2230, #0d1118 62%);
+  color: #f4f8ff;
+  opacity: 1;
+  transition: opacity 220ms ease;
+}
+
+#appBootOverlay.is-ready{
+  opacity: 0;
+  pointer-events: none;
+}
+
+#appBootOverlay .bootInner{
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+}
+
+#appBootOverlay .bootSpinner{
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 3px solid rgba(255,255,255,0.2);
+  border-top-color: #ffffff;
+  animation: celstompBootSpin 900ms linear infinite;
+}
+
+#appBootOverlay .bootText{
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(244,248,255,0.9);
+}
+
+@keyframes celstompBootSpin{
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 .modalCard{
   position: fixed;
   left: 50%;
@@ -306,6 +351,17 @@
   background: rgba(255,255,255,0.06);
 }
 
+#layerRowMenu .lrm-btn.is-active{
+  background: rgba(0, 230, 118, 0.14);
+  color: #b9ffd6;
+}
+
+#layerRowMenu .lrm-sep{
+  height: 1px;
+  margin: 4px 0;
+  background: rgba(255,255,255,0.12);
+}
+
 #layerRowMenu .lrm-btn:disabled{
   opacity: 0.45;
   cursor: default;
@@ -372,6 +428,16 @@
   flex: 1 1 auto;
 }
 
+#onionCtxMenu select{
+  min-width: 120px;
+  height: 30px;
+  border-radius: 6px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.07);
+  color: #f2f6ff;
+  padding: 0 8px;
+}
+
 #onionCtxMenu .val{
   width: 28px;
   text-align: right;
@@ -435,6 +501,33 @@
 .shortcutsGrid span{
   flex: 1;
   opacity: 0.85;
+}
+
+.tutorialStepCounter{
+  margin-top: 8px;
+  font-size: 12px;
+  color: rgba(255,255,255,0.72);
+}
+
+.tutorialStepHint{
+  margin-top: 6px;
+  font-size: 12px;
+  color: rgba(185, 255, 214, 0.9);
+}
+
+#tutorialHighlight{
+  position: fixed;
+  z-index: 12002;
+  border: 2px solid rgba(0, 230, 118, 0.95);
+  border-radius: 10px;
+  box-shadow: 0 0 0 9999px rgba(0,0,0,0.68), 0 0 0 1px rgba(0,0,0,0.5) inset;
+  pointer-events: none;
+  transition: left 120ms ease, top 120ms ease, width 120ms ease, height 120ms ease;
+}
+
+.tutorialCard{
+  width: min(92vw, 420px);
+  z-index: 12003;
 }
 
 /* Mini Buttons */

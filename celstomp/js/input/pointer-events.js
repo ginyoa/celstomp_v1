@@ -179,10 +179,12 @@ function drawExactCel(ctx, idx) {
         if (!layer) continue;
         const op = layer.opacity ?? 1;
         if (op <= 0) continue;
+        const blendOp = typeof layerBlendModeCanvasOperation === "function" ? layerBlendModeCanvasOperation(layer.blendMode) : "source-over";
         const srcCanvases = canvasesWithContentForMainLayerFrame(L, idx);
         if (!srcCanvases.length) continue;
         ctx.save();
         ctx.globalAlpha *= op;
+        ctx.globalCompositeOperation = blendOp;
         for (const off of srcCanvases) ctx.drawImage(off, 0, 0);
         ctx.restore();
     }

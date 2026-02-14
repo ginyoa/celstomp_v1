@@ -13,6 +13,7 @@ function wireQoLFeatures() {
   document._celstompQoLWired = true;
 
   _wireShortcutsModal();
+  _maybeShowGuidedTutorial();
   _wireUnsavedChangesGuard();
   _wireTimelineEnhancements();
   _wireLayerQoL();
@@ -20,11 +21,21 @@ function wireQoLFeatures() {
   _wireExtraKeyboardShortcuts();
 }
 
+function _isShortcutsHotkey(e) {
+  const key = String(e?.key || "");
+  const code = String(e?.code || "");
+  if (key === "?") return true;
+  if (code === "Slash" && !!e.shiftKey) return true;
+  return false;
+}
+
 // IMPL funcs
 function _wireShortcutsModal() {
   const modal = $("shortcutsModal");
   const backdrop = $("shortcutsModalBackdrop");
   const closeBtn = $("shortcutsCloseBtn");
+  const replayBtn = $("tutorialReplayBtn");
+  const replayInfoBtn = $("tutorialReplayInfoBtn");
   if (!modal || !backdrop || !closeBtn) return;
 
   const toggleModal = show => {
@@ -39,15 +50,228 @@ function _wireShortcutsModal() {
 
   closeBtn.addEventListener("click", () => toggleModal(false));
   backdrop.addEventListener("click", () => toggleModal(false));
+  const closeInfoPanel = () => {
+      const infoPanel = $("infoPanel");
+      const infoBackdrop = $("infoBackdrop");
+      const infoBtn = $("infoBtn");
+      if (!infoPanel || !infoBackdrop || !infoBtn) return;
+      infoBtn.setAttribute("aria-expanded", "false");
+      infoPanel.setAttribute("aria-hidden", "true");
+      infoPanel.classList.remove("isOpen");
+      infoBackdrop.classList.remove("isOpen");
+  };
+  const replayTutorial = () => {
+      toggleModal(false);
+      closeInfoPanel();
+      _maybeShowGuidedTutorial({
+          force: true
+      });
+  };
+  replayBtn?.addEventListener("click", () => {
+      replayTutorial();
+  });
+  replayInfoBtn?.addEventListener("click", replayTutorial);
 
-  document.addEventListener("keydown", e => {
-      if (e.key === "?" && !isTyping(e.currentTarget.activeElement)) {
-          e.preventDefault();
-          toggleModal(!modal.hidden);
-      }
-  }, {
+  const onShortcutKey = e => {
+      if (!_isShortcutsHotkey(e)) return;
+      if (e.__celstompShortcutsHandled) return;
+      e.__celstompShortcutsHandled = true;
+      if (isTyping(document.activeElement)) return;
+      e.preventDefault();
+      toggleModal(modal.hidden);
+  };
+
+  document.addEventListener("keydown", onShortcutKey, {
+      capture: true,
       passive: false
   });
+}
+
+function _maybeShowGuidedTutorial(options = {}) {
+  const force = !!options.force;
+  const modal = $("tutorialModal");
+  const backdrop = $("tutorialModalBackdrop");
+  const highlight = $("tutorialHighlight");
+  const titleEl = $("tutorialStepTitle");
+  const bodyEl = $("tutorialStepBody");
+  const counterEl = $("tutorialStepCounter");
+  const hintEl = $("tutorialStepHint");
+  const backBtn = $("tutorialBackBtn");
+  const skipBtn = $("tutorialSkipBtn");
+  const nextBtn = $("tutorialNextBtn");
+  if (!modal || !backdrop || !highlight || !titleEl || !bodyEl || !counterEl || !backBtn || !skipBtn || !nextBtn) return;
+
+  const STORAGE_KEY = "celstomp_tutorial_seen_v2";
+  let seen = false;
+  try {
+    seen = localStorage.getItem(STORAGE_KEY) === "1";
+  } catch {}
+  if (seen && !force) return;
+
+  const steps = [ {
+    title: "Welcome to Celstomp (^_^)",
+    body: "Quick guided tour. Use Next/Back anytime.",
+    selector: "#toolSeg"
+  }, {
+    title: "Layers (•̀ᴗ•́)و",
+    body: "Use layer rows for drawing order. Right-click one for opacity/blend.",
+    selector: "#layerSeg"
+  }, {
+    title: "Onion Skin",
+    body: "Toggle Onion in timeline. Right-click Onion for extra controls.",
+    selector: "#tlOnion"
+  }, {
+    title: "Export",
+    body: "Open File and export as MP4, GIF, or image sequence.",
+    selector: "#menuFileBtn"
+  }, {
+    title: "You are ready! (^-^)/",
+    body: "Press ? anytime to open shortcuts. Have fun animating!"
+  } ];
+
+  let idx = 0;
+  let isOpen = false;
+
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+  const markSeen = () => {
+    try {
+      localStorage.setItem(STORAGE_KEY, "1");
+    } catch {}
+  };
+
+  const findVisibleTarget = selector => {
+    if (!selector) return null;
+    const nodes = Array.from(document.querySelectorAll(selector));
+    for (const el of nodes) {
+      const r = el.getBoundingClientRect();
+      if (r.width > 2 && r.height > 2) return el;
+    }
+    return null;
+  };
+
+  const setHighlight = target => {
+    if (!target) {
+      highlight.hidden = true;
+      return;
+    }
+    const r = target.getBoundingClientRect();
+    if (r.width < 2 || r.height < 2) {
+      highlight.hidden = true;
+      return;
+    }
+    const pad = 8;
+    const left = clamp(r.left - pad, 4, window.innerWidth - 8);
+    const top = clamp(r.top - pad, 4, window.innerHeight - 8);
+    const width = clamp(r.width + pad * 2, 24, window.innerWidth - left - 4);
+    const height = clamp(r.height + pad * 2, 24, window.innerHeight - top - 4);
+    highlight.style.left = `${Math.round(left)}px`;
+    highlight.style.top = `${Math.round(top)}px`;
+    highlight.style.width = `${Math.round(width)}px`;
+    highlight.style.height = `${Math.round(height)}px`;
+    highlight.hidden = false;
+  };
+
+  const placeCard = target => {
+    if (!target) {
+      modal.style.left = "50%";
+      modal.style.top = "50%";
+      modal.style.transform = "translate(-50%, -50%)";
+      return;
+    }
+    modal.style.left = "50%";
+    modal.style.top = "50%";
+    modal.style.transform = "translate(-50%, -50%)";
+    const tr = target.getBoundingClientRect();
+    const mr = modal.getBoundingClientRect();
+    let x = tr.right + 14;
+    let y = tr.top;
+    if (x + mr.width > window.innerWidth - 8) x = tr.left - mr.width - 14;
+    if (x < 8) x = 8;
+    if (y + mr.height > window.innerHeight - 8) y = window.innerHeight - mr.height - 8;
+    if (y < 8) y = 8;
+    modal.style.left = `${Math.round(x)}px`;
+    modal.style.top = `${Math.round(y)}px`;
+    modal.style.transform = "none";
+  };
+
+  const renderStep = () => {
+    const step = steps[idx] || steps[0];
+    titleEl.textContent = step.title;
+    bodyEl.textContent = step.body;
+    counterEl.textContent = `${idx + 1} / ${steps.length}`;
+    backBtn.disabled = idx <= 0;
+    nextBtn.textContent = idx >= steps.length - 1 ? "Done" : "Next";
+    nextBtn.disabled = false;
+
+    const target = findVisibleTarget(step.selector);
+    if (hintEl) {
+      hintEl.textContent = "";
+      hintEl.hidden = true;
+    }
+
+    requestAnimationFrame(() => {
+      setHighlight(target);
+      placeCard(target);
+    });
+  };
+
+  const close = () => {
+    if (!isOpen) return;
+    isOpen = false;
+    modal.hidden = true;
+    backdrop.hidden = true;
+    highlight.hidden = true;
+    backBtn.removeEventListener("click", onBack);
+    nextBtn.removeEventListener("click", onNext);
+    skipBtn.removeEventListener("click", onSkip);
+    document.removeEventListener("keydown", onEsc);
+    window.removeEventListener("resize", onReposition, true);
+    window.removeEventListener("scroll", onReposition, true);
+    markSeen();
+  };
+
+  const onBack = () => {
+    if (idx <= 0) return;
+    idx -= 1;
+    renderStep();
+  };
+
+  const onNext = () => {
+    if (idx >= steps.length - 1) {
+      close();
+      return;
+    }
+    idx += 1;
+    renderStep();
+  };
+
+  const onSkip = () => close();
+
+  const onEsc = e => {
+    if (e.key === "Escape") close();
+  };
+
+  const onReposition = () => {
+    if (!isOpen) return;
+    const step = steps[idx] || steps[0];
+    const target = findVisibleTarget(step.selector);
+    setHighlight(target);
+    placeCard(target);
+  };
+
+  backdrop.style.background = "transparent";
+  backdrop.style.pointerEvents = "none";
+  modal.hidden = false;
+  backdrop.hidden = false;
+  isOpen = true;
+  renderStep();
+  backBtn.addEventListener("click", onBack);
+  nextBtn.addEventListener("click", onNext);
+  skipBtn.addEventListener("click", onSkip);
+  document.addEventListener("keydown", onEsc);
+  window.addEventListener("resize", onReposition, true);
+  window.addEventListener("scroll", onReposition, true);
 }
 function isTyping(el) {
   if (!el) return false;
@@ -243,17 +467,6 @@ function _wireExtraKeyboardShortcuts() {
       if (isTyping(document.activeElement)) return;
       const ctrl = e.ctrlKey || e.metaKey;
       const k = (e.key || "").toLowerCase();
-
-      if (k === "?" && !e.shiftKey) {
-          e.preventDefault();
-          const modal = $("shortcutsModal");
-          const backdrop = $("shortcutsModalBackdrop");
-          if (modal && backdrop) {
-              modal.hidden = !modal.hidden;
-              backdrop.hidden = !backdrop.hidden;
-          }
-          return;
-      }
 
       if (ctrl && k === "y") {
           e.preventDefault();

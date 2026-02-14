@@ -12,6 +12,7 @@ let transparencyHoldEnabled = false;
 let onionAlpha = .5;
 let onionPrevTint = "#4080ff";
 let onionNextTint = "#40ff78";
+let onionBlendMode = "normal";
 let keepOnionWhilePlaying = false;
 let keepTransWhilePlaying = false;
 let restoreOnionAfterPlay = false;

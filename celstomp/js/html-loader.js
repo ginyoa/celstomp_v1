@@ -64,6 +64,32 @@
         });
     }
 
+    function createBootOverlayController() {
+        const overlay = document.getElementById('appBootOverlay');
+        const text = document.getElementById('appBootText');
+        const setText = value => {
+            if (!text) return;
+            text.textContent = String(value || 'Loading Celstomp...');
+        };
+        const hide = () => {
+            if (!overlay) return;
+            const remove = () => {
+                try {
+                    overlay.remove();
+                } catch {}
+            };
+            overlay.classList.add('is-ready');
+            overlay.addEventListener('transitionend', remove, { once: true });
+            window.setTimeout(remove, 320);
+        };
+        const fail = message => {
+            if (!overlay) return;
+            overlay.classList.remove('is-ready');
+            setText(message || 'Failed to load Celstomp.');
+        };
+        return { setText, hide, fail };
+    }
+
     function hasDismissedMobileGate() {
         try {
             return localStorage.getItem(MOBILE_GATE_DISMISS_KEY) === '1';
@@ -187,24 +213,31 @@
     }
 
     async function boot() {
+        const overlay = createBootOverlayController();
         try {
+            overlay.setText('Loading interface...');
             for (const src of partScripts) {
                 await loadScript(src);
             }
 
             if (shouldShowMobileGate()) {
+                overlay.hide();
                 await wireMobileGate();
             }
 
+            overlay.setText('Loading editor core...');
             for (const src of barrelScripts) {
                 await loadScript(src);
             }
 
+            overlay.setText('Loading tools...');
             await loadAppScripts(collectAppScripts());
 
             console.log('[celstomp] All parts and scripts loaded via JS injection.');
+            overlay.hide();
 
         } catch (err) {
+            overlay.fail('Failed to load Celstomp.');
             console.error('[celstomp] Boot error:', err);
             alert('Error loading application: ' + err.message);
         }

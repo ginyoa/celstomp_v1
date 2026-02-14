@@ -8,7 +8,7 @@ const autosaveController = window.CelstompAutosave?.createController?.({
   badgeEl: saveStateBadgeEl,
   buildSnapshot: async () => await buildProjectSnapshot(),
   pointerSelectors: [ "#drawCanvas", "#fillCurrent", "#fillAll", "#tlDupCel", "#toolSeg label", "#layerSeg .layerRow", "#timelineTable td" ],
-  valueSelectors: [ "#autofillToggle", "#brushSize", "#brushSizeRange", "#brushSizeNum", "#eraserSize", "#pressureSize", "#pressureOpacity", "#pressureTilt", "#tlSnap", "#tlSeconds", "#tlFps", "#tlOnion", "#tlTransparency", "#loopToggle", "#onionPrevColor", "#onionNextColor", "#onionAlpha" ],
+  valueSelectors: [ "#autofillToggle", "#brushSize", "#brushSizeRange", "#brushSizeNum", "#eraserSize", "#pressureSize", "#pressureOpacity", "#pressureTilt", "#tlSnap", "#tlSeconds", "#tlFps", "#tlOnion", "#tlTransparency", "#loopToggle", "#onionPrevColor", "#onionNextColor", "#onionAlpha", "#onionBlendMode" ],
   onRestorePayload: (payload, source) => {
       const blob = new Blob([ JSON.stringify(payload.data) ], {
           type: "application/json"
@@ -117,28 +117,38 @@ async function exportClip(mime, ext) {
 ////////////////
 
 
-function buildGifPalette() {
+function buildGifPalette(quality = "high") {
+  const q = String(quality || "high").toLowerCase();
+  const levels = q === "low" ? 4 : q === "medium" ? 5 : 6;
   const out = [ 0x000000 ];
-  for (let r = 0; r < 6; r++) {
-      for (let g = 0; g < 6; g++) {
-          for (let b = 0; b < 6; b++) {
-              out.push(r * 51 << 16 | g * 51 << 8 | b * 51);
+  const step = levels > 1 ? 255 / (levels - 1) : 255;
+  for (let r = 0; r < levels; r++) {
+      for (let g = 0; g < levels; g++) {
+          for (let b = 0; b < levels; b++) {
+              out.push(Math.round(r * step) << 16 | Math.round(g * step) << 8 | Math.round(b * step));
           }
       }
   }
-  for (let i = 0; out.length < 256; i++) {
-      const v = Math.round(i / 39 * 255);
+  const graySlots = Math.max(0, 256 - out.length);
+  for (let i = 0; i < graySlots; i++) {
+      const v = graySlots <= 1 ? 0 : Math.round(i / (graySlots - 1) * 255);
       out.push(v << 16 | v << 8 | v);
   }
-  return out;
+  return {
+      palette: out.slice(0, 256),
+      levels: levels,
+      step: step
+  };
 }
-function rgbaToGifIndex(r, g, b) {
-  const ri = Math.max(0, Math.min(5, Math.round(r / 51)));
-  const gi = Math.max(0, Math.min(5, Math.round(g / 51)));
-  const bi = Math.max(0, Math.min(5, Math.round(b / 51)));
-  return 1 + ri * 36 + gi * 6 + bi;
+function rgbaToGifIndex(r, g, b, paletteInfo) {
+  const levels = Math.max(2, Number(paletteInfo?.levels) || 6);
+  const step = Number(paletteInfo?.step) || 51;
+  const ri = Math.max(0, Math.min(levels - 1, Math.round(r / step)));
+  const gi = Math.max(0, Math.min(levels - 1, Math.round(g / step)));
+  const bi = Math.max(0, Math.min(levels - 1, Math.round(b / step)));
+  return 1 + ri * levels * levels + gi * levels + bi;
 }
-function imageDataToGifIndexes(data, transparent) {
+function imageDataToGifIndexes(data, transparent, paletteInfo) {
   const out = new Uint8Array(data.length / 4);
   for (let i = 0, p = 0; i < data.length; i += 4, p++) {
       const a = data[i + 3];
@@ -146,53 +156,80 @@ function imageDataToGifIndexes(data, transparent) {
           out[p] = 0;
           continue;
       }
-      out[p] = rgbaToGifIndex(data[i], data[i + 1], data[i + 2]);
+      out[p] = rgbaToGifIndex(data[i], data[i + 1], data[i + 2], paletteInfo);
   }
   return out;
 }
-async function exportGif({fps: fpsLocal, transparent: transparent, loop: loop}) {
+async function exportGif({
+  fps: fpsLocal,
+  transparent: transparent,
+  loop: loop,
+  quality: quality,
+  scale: scale,
+  frameStep: frameStep
+}) {
   if (typeof GifWriter !== "function") {
       alert("GIF export unavailable: encoder library not loaded.");
       return;
   }
+  const safeFps = Math.max(1, Math.min(60, parseInt(fpsLocal, 10) || fps || 12));
+  const safeScale = clamp(Number(scale) || 1, .1, 1);
+  const safeFrameStep = Math.max(1, parseInt(frameStep, 10) || 1);
+  const outW = Math.max(1, Math.round(contentW * safeScale));
+  const outH = Math.max(1, Math.round(contentH * safeScale));
   const start = clipStart;
   const end = clipEnd;
-  const count = Math.max(0, end - start + 1);
+  const count = Math.floor((end - start) / safeFrameStep) + 1;
   if (!count) {
       alert("No frames to export.");
       return;
   }
-  const totalPixels = contentW * contentH * count;
+  const totalPixels = outW * outH * count;
   if (totalPixels > 4e7) {
       alert("GIF export range is too large. Shorten clip range or canvas size.");
       return;
   }
-  const delayCs = Math.max(1, Math.round(100 / Math.max(1, fpsLocal || fps || 12)));
+  const delayCs = Math.max(1, Math.round(100 * safeFrameStep / safeFps));
   const estSize = Math.max(1048576, Math.ceil(totalPixels * 1.4 + count * 256));
   const out = new Uint8Array(estSize);
-  const palette = buildGifPalette();
-  const writer = new GifWriter(out, contentW, contentH, {
-      palette: palette,
+  const paletteInfo = buildGifPalette(quality);
+  const writer = new GifWriter(out, outW, outH, {
+      palette: paletteInfo.palette,
       loop: loop ? 0 : null
   });
-  const cc = document.createElement("canvas");
-  cc.width = contentW;
-  cc.height = contentH;
-  const cctx = cc.getContext("2d", {
+  const sourceCanvas = document.createElement("canvas");
+  sourceCanvas.width = contentW;
+  sourceCanvas.height = contentH;
+  const sourceCtx = sourceCanvas.getContext("2d", {
       willReadFrequently: true,
       alpha: true
   });
-  cctx.imageSmoothingEnabled = !!antiAlias;
+  sourceCtx.imageSmoothingEnabled = !!antiAlias;
+  const frameCanvas = document.createElement("canvas");
+  frameCanvas.width = outW;
+  frameCanvas.height = outH;
+  const frameCtx = frameCanvas.getContext("2d", {
+      willReadFrequently: true,
+      alpha: true
+  });
+  frameCtx.imageSmoothingEnabled = !!antiAlias;
   await withExportOverridesAsync(async () => {
-      for (let i = start; i <= end; i++) {
+      for (let i = start; i <= end; i += safeFrameStep) {
           await sleep(0);
-          await drawFrameTo(cctx, i, {
+          await drawFrameTo(sourceCtx, i, {
               forceHoldOff: true,
               transparent: transparent
           });
-          const img = cctx.getImageData(0, 0, contentW, contentH);
-          const indexed = imageDataToGifIndexes(img.data, transparent);
-          writer.addFrame(0, 0, contentW, contentH, indexed, {
+          frameCtx.setTransform(1, 0, 0, 1, 0, 0);
+          frameCtx.clearRect(0, 0, outW, outH);
+          if (safeScale === 1) {
+              frameCtx.drawImage(sourceCanvas, 0, 0);
+          } else {
+              frameCtx.drawImage(sourceCanvas, 0, 0, outW, outH);
+          }
+          const img = frameCtx.getImageData(0, 0, outW, outH);
+          const indexed = imageDataToGifIndexes(img.data, transparent, paletteInfo);
+          writer.addFrame(0, 0, outW, outH, indexed, {
               delay: delayCs,
               disposal: 1,
               transparent: transparent ? 0 : null
@@ -206,7 +243,7 @@ async function exportGif({fps: fpsLocal, transparent: transparent, loop: loop}) 
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `celstomp_clip_${fpsLocal}fps_${framesToSF(start).s}-${framesToSF(end).s}.gif`;
+  a.download = `celstomp_clip_${safeFps}fps_${framesToSF(start).s}-${framesToSF(end).s}.gif`;
   document.body.appendChild(a);
   a.click();
   a.remove();
@@ -446,6 +483,10 @@ async function buildProjectSnapshot() {
   for (let li = 0; li < LAYERS_COUNT; li++) {
       const lay = layers?.[li];
       const opacity = typeof lay?.opacity === "number" ? clamp(lay.opacity, 0, 1) : 1;
+      const blendMode = typeof normalizeLayerBlendMode === "function" ? normalizeLayerBlendMode(lay?.blendMode) : (() => {
+          const raw = String(lay?.blendMode || "normal").toLowerCase();
+          return raw === "multiply" || raw === "overlay" ? raw : "normal";
+      })();
       const name = String(lay?.name || "");
       const suborder = Array.isArray(lay?.suborder) ? lay.suborder.slice() : [];
       const keySet = new Set(suborder);
@@ -488,6 +529,7 @@ async function buildProjectSnapshot() {
       outLayers.push({
           name: name,
           opacity: opacity,
+          blendMode: blendMode,
           suborder: uniqStable(keys),
           sublayers: outSubs
       });
@@ -515,6 +557,7 @@ async function buildProjectSnapshot() {
       onionPrevTint: onionPrevTint,
       onionNextTint: onionNextTint,
       onionAlpha: onionAlpha,
+      onionBlendMode: onionBlendMode,
       playSnapped: playSnapped,
       keepOnionWhilePlaying: keepOnionWhilePlaying,
       keepTransWhilePlaying: keepTransWhilePlaying,
@@ -595,6 +638,10 @@ function loadProject(file, options = {}) {
           let oa = typeof data.onionAlpha === "number" ? data.onionAlpha : .2;
           if (oa > 1.001) oa = oa / 100;
           onionAlpha = clamp(oa, .05, .8);
+          onionBlendMode = typeof normalizeLayerBlendMode === "function" ? normalizeLayerBlendMode(data.onionBlendMode) : (() => {
+              const raw = String(data.onionBlendMode || "normal").toLowerCase();
+              return raw === "multiply" || raw === "overlay" ? raw : "normal";
+          })();
           playSnapped = !!data.playSnapped;
           keepOnionWhilePlaying = !!data.keepOnionWhilePlaying;
           keepTransWhilePlaying = !!data.keepTransWhilePlaying;
@@ -626,6 +673,7 @@ function loadProject(file, options = {}) {
               name: "",
               opacity: 1,
               prevOpacity: 1,
+              blendMode: "normal",
               frames: new Array(totalFrames).fill(null),
               suborder: [],
               sublayers: new Map
@@ -682,6 +730,10 @@ function loadProject(file, options = {}) {
               if (!lay || !src) continue;
               lay.opacity = typeof src.opacity === "number" ? clamp(src.opacity, 0, 1) : 1;
               lay.prevOpacity = lay.opacity;
+              lay.blendMode = typeof normalizeLayerBlendMode === "function" ? normalizeLayerBlendMode(src.blendMode) : (() => {
+                  const raw = String(src.blendMode || "normal").toLowerCase();
+                  return raw === "multiply" || raw === "overlay" ? raw : "normal";
+              })();
               if (typeof src.name === "string" && src.name.trim()) lay.name = src.name.trim();
               if (src.sublayers && typeof src.sublayers === "object") {
                   const subsObj = src.sublayers;
@@ -779,6 +831,7 @@ function loadProject(file, options = {}) {
 
           const onionPrevColorInput = $("onionPrevColor");
           const onionNextColorInput = $("onionNextColor");
+          const onionBlendModeInput = $("onionBlendMode");
 
           const onionAlphaInput = $("onionAlpha");
           const onionAlphaVal = $("onionAlphaVal");
@@ -802,6 +855,7 @@ function loadProject(file, options = {}) {
           safeSetChecked(autofillToggle, autofill);
           safeSetValue(onionPrevColorInput, onionPrevTint);
           safeSetValue(onionNextColorInput, onionNextTint);
+          safeSetValue(onionBlendModeInput, onionBlendMode);
           safeSetValue(onionAlphaInput, Math.round(onionAlpha * 100));
           safeText(onionAlphaVal, String(Math.round(onionAlpha * 100)));
           safeSetChecked(playSnappedChk, playSnapped);
@@ -895,17 +949,26 @@ function askGifExportOptions() {
   const exportGifLoopToggle = $("exportGifLoop");
 
   const exportGifFpsInput = $("exportGifFps");
+  const exportGifQualitySelect = $("exportGifQuality");
+  const exportGifScaleSelect = $("exportGifScale");
+  const exportGifFrameStepSelect = $("exportGifFrameStep");
 
   return new Promise(resolve => {
       if (!exportGifModal || !exportGifModalBackdrop || !exportGifConfirmBtn || !exportGifCancelBtn) {
           resolve({
               fps: Math.max(1, Math.min(60, fps || 12)),
               transparent: false,
-              loop: true
+              loop: true,
+              quality: "high",
+              scale: 1,
+              frameStep: 1
           });
           return;
       }
       safeSetValue(exportGifFpsInput, Math.max(1, Math.min(60, fps || 12)));
+      safeSetValue(exportGifQualitySelect, "high");
+      safeSetValue(exportGifScaleSelect, "1");
+      safeSetValue(exportGifFrameStepSelect, "1");
       exportGifModal.hidden = false;
       exportGifModalBackdrop.hidden = false;
       const cleanup = value => {
@@ -919,10 +982,17 @@ function askGifExportOptions() {
       };
       const onConfirm = () => {
           const f = Math.max(1, Math.min(60, parseInt(exportGifFpsInput?.value, 10) || fps || 12));
+          const quality = String(exportGifQualitySelect?.value || "high").toLowerCase();
+          const rawScale = Number(exportGifScaleSelect?.value || 1);
+          const safeScale = clamp(rawScale, .1, 1);
+          const safeFrameStep = Math.max(1, parseInt(exportGifFrameStepSelect?.value, 10) || 1);
           cleanup({
               fps: f,
               transparent: !!exportGifTransparencyToggle?.checked,
-              loop: !!exportGifLoopToggle?.checked
+              loop: !!exportGifLoopToggle?.checked,
+              quality: quality === "medium" || quality === "low" ? quality : "high",
+              scale: safeScale,
+              frameStep: safeFrameStep
           });
       };
       const onCancel = () => cleanup(null);
