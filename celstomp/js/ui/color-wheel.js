@@ -21,6 +21,23 @@ function wheelLocalFromEvent(e) {
         y: y
     };
 }
+
+function getBarycentricCoordinates(dx, dy, triR) {
+    const angH = (hsvPick.h - 90) * (Math.PI / 180);
+    const x1 = Math.cos(angH) * triR;
+    const y1 = Math.sin(angH) * triR;
+    const x2 = Math.cos(angH + 2 * Math.PI / 3) * triR;
+    const y2 = Math.sin(angH + 2 * Math.PI / 3) * triR;
+    const x3 = Math.cos(angH + 4 * Math.PI / 3) * triR;
+    const y3 = Math.sin(angH + 4 * Math.PI / 3) * triR;
+    const detT = (y2 - y3) * (x1 - x3) + (x3 - x2) * (y1 - y3);
+    const l1 = ((y2 - y3) * (dx - x3) + (x3 - x2) * (dy - y3)) / detT;
+    const l2 = ((y3 - y1) * (dx - x3) + (x1 - x3) * (dy - y3)) / detT;
+    const l3 = 1 - l1 - l2;
+
+    return [l1, l2, l3];
+}
+
 function hitTestWheel(x, y) {
     const g = _wheelGeom || computeWheelGeom();
     if (!g) return null;
@@ -31,19 +48,14 @@ function hitTestWheel(x, y) {
     if (pickerShape === "triangle") {
         if (dist >= g.ringInner && dist <= g.ringOuter) return "hue";
         const triR = Math.floor(g.ringInner * 0.90);
-        const angH = (hsvPick.h - 90) * (Math.PI / 180);
-        const x1 = Math.cos(angH) * triR;
-        const y1 = Math.sin(angH) * triR;
-        const x2 = Math.cos(angH + 2 * Math.PI / 3) * triR;
-        const y2 = Math.sin(angH + 2 * Math.PI / 3) * triR;
-        const x3 = Math.cos(angH + 4 * Math.PI / 3) * triR;
-        const y3 = Math.sin(angH + 4 * Math.PI / 3) * triR;
-        const detT = (y2 - y3) * (x1 - x3) + (x3 - x2) * (y1 - y3);
-        const l1 = ((y2 - y3) * (dx - x3) + (x3 - x2) * (dy - y3)) / detT;
-        const l2 = ((y3 - y1) * (dx - x3) + (x1 - x3) * (dy - y3)) / detT;
-        const l3 = 1 - l1 - l2;
-        if (l1 >= 0 && l2 >= 0 && l3 >= 0) return "sv";
-        return null;
+        const [l1, l2, l3] = getBarycentricCoordinates(dx, dy, triR);
+        if (
+            (l1 >= 0 && l2 >= 0 && l3 >= 0)
+        )  {
+            return "sv";
+        } else {
+            return null;
+        }
     }
 
     const inRing = dist >= g.ringInner && dist <= g.ringOuter;
@@ -70,22 +82,10 @@ function updateFromSVPoint(x, y) {
     if (pickerShape === "triangle") {
         const dx = x - g.R;
         const dy = y - g.R;
-        const triR = Math.floor(g.ringInner * 0.90);
-        const angH = (hsvPick.h - 90) * (Math.PI / 180);
-        const x1 = Math.cos(angH) * triR;
-        const y1 = Math.sin(angH) * triR;
-        const x2 = Math.cos(angH + 2 * Math.PI / 3) * triR;
-        const y2 = Math.sin(angH + 2 * Math.PI / 3) * triR;
-        const x3 = Math.cos(angH + 4 * Math.PI / 3) * triR;
-        const y3 = Math.sin(angH + 4 * Math.PI / 3) * triR;
-        const detT = (y2 - y3) * (x1 - x3) + (x3 - x2) * (y1 - y3);
-        const l1 = ((y2 - y3) * (dx - x3) + (x3 - x2) * (dy - y3)) / detT;
-        const l2 = ((y3 - y1) * (dx - x3) + (x1 - x3) * (dy - y3)) / detT;
+        const [l1, l2, _] = getBarycentricCoordinates(dx, dy, g.ringInner * 0.9);
         
-        let cl1 = l1, cl2 = l2, cl3 = 1 - l1 - l2;
-        if (cl1 < 0) { cl1 = 0; cl2 = l2 / (l2 + cl3); cl3 = 1 - cl2; }
-        else if (cl2 < 0) { cl2 = 0; cl1 = cl1 / (cl1 + cl3); cl3 = 1 - cl1; }
-        else if (cl3 < 0) { cl3 = 0; cl1 = cl1 / (cl1 + cl2); cl2 = 1 - cl1; }
+        let cl1 = clamp(l1, 0, 1);
+        let cl2 = clamp(l2, 0, (1 - cl1));
 
         hsvPick.v = cl1 + cl2;
         hsvPick.s = hsvPick.v > 0.0001 ? (cl1 / hsvPick.v) : 0;
