@@ -80,9 +80,10 @@ Celstomp uses standard browser security features. Ensure your browser is up to d
 
 This project has minimal dependencies:
 - Modern web browser with JavaScript enabled
-- Python 3.x (for local development server only)
+- Python 3.x (optional, for the legacy local development server)
+- Node.js + npm (optional, for the Vite development/build workflow)
 
-No external libraries or frameworks are required for the core application.
+The core application runs entirely in the browser; the Node/Python tooling is for local development only.
 
 ## Known Security Considerations
 

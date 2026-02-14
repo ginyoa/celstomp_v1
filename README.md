@@ -17,27 +17,31 @@ https://ginyo.space/celstomp/
 
 ## Features
 
-- **Canvas**: 16:9 ratio, zoom/pan with scroll or pinch
+- **Canvas**: Configurable aspect ratios (16:9 default), zoom/pan with scroll or pinch
 - **Timeline**: Frame-by-frame grid, drag cels, multi-select
-- **Tools**: Brush, Eraser, Fill Brush, Fill Eraser, Lasso, Rect Select, Eyedropper
-- **Layers**: LINE, SHADE, COLOR, FILL, PAPER - with swatches and reordering. Solo layer mode available.
+- **Tools**: Brush (shape + pressure options), Eraser, Fill Brush, Fill Eraser, Lasso, Rect Select, Eyedropper
+- **Layers**: LINE, SHADE, COLOR, FILL, PAPER - with swatches, reordering, opacity, and blend modes. Solo layer mode available.
 - **Onion Skin**: Preview prev/next frames (adjustable colors/opacity)
+- **Color Picker**: Optional triangle picker mode
 - **Palette**: Save/Load palettes, Import/Export JSON support
 - **Shortcuts**: Comprehensive keyboard shortcuts (Press `?` in app for list)
+- **UI**: Font switcher and dock/island layout
+- **Tutorial**: Built-in guided tour with replay
 - **Safety**: Unsaved changes protection
-- **Export**: MP4 video or image sequence
+- **Export**: MP4 video, GIF, or image sequence
 - **Save/Load**: Project files in JSON format
 
 ## Credits!!
 
 | Person | Role | Links |
 |---|---|---|
-| <img src="https://github.com/ginyoa.png?size=80" width="48" height="48" style="border-radius:999px;" /> <br> **Ginyoa** | Project Lead, Creator, Concept Artist | [GitHub](https://github.com/Ginyoa) · [Website](https://ginyo.space/) |
-| <img src="https://github.com/immalloy.png?size=80" width="48" height="48" style="border-radius:999px;" /> <br> **ImMalloy** | Coder, Refactored code, fixed bugs and also Silly Artist | [GitHub](https://github.com/ImMalloy) · [Website](https://immalloy.nichesite.org/) · [Play Your Little Oyachi!](https://oyachigame.nichesite.org/) |
-| <img src="https://github.com/Microck.png?size=80" width="48" height="48" style="border-radius:999px;" /> <br> **Microck** | Coder, Improved reliability and UX and Fixed Bugs | [GitHub](https://github.com/Microck) · [Website](https://micr.dev/) |
-| <img src="https://github.com/IvBautistaS.png?size=80" width="48" height="48" style="border-radius:999px;" /> <br> **IvBautistaS** | Refactored both Javascript and CSS | [GitHub](https://github.com/IvBautistaS) |
-| <img src="https://github.com/Manuel-AAR.png?size=80" width="48" height="48" style="border-radius:999px;" /> <br> **Manuel-AAR** | Added Brush Icons | [GitHub](https://github.com/Manuel-AAR) |
-| <img src="https://github.com/phbragap-creator.png?size=80" width="48" height="48" style="border-radius:999px;" /> <br> **phbragap-creator** | optimized island drag, fixed topbar overlap | [GitHub](https://github.com/phbragap-creator) |
+| <img src="https://github.com/ginyoa.png?size=80" width="48" height="48" style="border-radius:999px;" /> <br> **Ginyoa** | Project Lead, Creator, Concept Artist | [GitHub](https://github.com/ginyoa) · [Website](https://ginyo.space/) |
+| <img src="https://github.com/immalloy.png?size=80" width="48" height="48" style="border-radius:999px;" /> <br> **ImMalloy** | Brush system remake, side panel integration, QoL fixes | [GitHub](https://github.com/ImMalloy) · [Website](https://immalloy.nichesite.org/) · [Play Your Little Oyachi!](https://oyachigame.nichesite.org/) |
+| <img src="https://github.com/Microck.png?size=80" width="48" height="48" style="border-radius:999px;" /> <br> **Microck** | GIF export, layer blend modes, tutorial replay, reliability/UX fixes | [GitHub](https://github.com/Microck) · [Website](https://micr.dev/) |
+| <img src="https://github.com/IvBautistaS.png?size=80" width="48" height="48" style="border-radius:999px;" /> <br> **IvBautistaS** | Refactored HTML, JavaScript, and CSS | [GitHub](https://github.com/IvBautistaS) |
+| <img src="https://github.com/hingler.png?size=80" width="48" height="48" style="border-radius:999px;" /> <br> **hingler** | Refactored monolith into modular supporting scripts | [GitHub](https://github.com/hingler) |
+| <img src="https://github.com/Manuel-AAR.png?size=80" width="48" height="48" style="border-radius:999px;" /> <br> **Manuel-AAR** | Added brush icons and basic brush shapes | [GitHub](https://github.com/Manuel-AAR) |
+| <img src="https://github.com/phbragap-creator.png?size=80" width="48" height="48" style="border-radius:999px;" /> <br> **phbragap-creator** | Triangle color picker, island/header overlap fixes | [GitHub](https://github.com/phbragap-creator) |
 
 
 ### Key Shortcuts

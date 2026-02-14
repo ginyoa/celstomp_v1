@@ -83,6 +83,7 @@ run-dev.bat          # Windows
 celstomp_v1/
 ├── celstomp/                # Main application
 │   ├── css/                 # Stylesheets
+│   ├── fonts/               # Local fonts
 │   ├── icons/               # Icons and images
 │   ├── parts/               # HTML partial templates
 │   ├── js/
@@ -97,11 +98,17 @@ celstomp_v1/
 │   ├── celstomp-app.js      # Main app entry
 │   ├── celstomp-autosave.js # Autosave logic
 │   ├── celstomp-imgseq.js   # Image sequence export
-│   └── index.html           # App shell
+│   ├── index.html           # App shell
+│   ├── manifest.webmanifest # PWA manifest
+│   ├── service-worker.js    # Offline caching
+│   ├── robots.txt           # SEO / crawler hints
+│   └── sitemap.xml          # SEO sitemap
+├── .github/                  # PR/issue templates
 ├── package.json             # Vite build config
+├── package-lock.json         # Locked dependency versions
 ├── vite.config.mjs          # Vite settings
-├── run-dev.command           # Legacy dev server (Mac/Linux)
-├── run-dev.bat               # Legacy dev server (Windows)
+├── run-dev.command          # Legacy dev server (Mac/Linux)
+├── run-dev.bat              # Legacy dev server (Windows)
 ├── LICENSE
 └── README.md
 ```
